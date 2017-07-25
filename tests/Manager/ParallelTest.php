@@ -17,9 +17,7 @@ class ParallelTest extends TestCase
     {
         $this->assertInstanceOf(
             Manager::class,
-            new Parallel(
-                $this->createMock(Runner::class)
-            )
+            new Parallel
         );
     }
 
