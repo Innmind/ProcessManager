@@ -30,7 +30,7 @@ class ForkTest extends TestCase
 
     public function testThrowWhenCallableFails()
     {
-        $process = new Fork(static function() {
+        $process = new Fork($fn = static function() {
             sleep(2);
             throw new \Exception;
         });
@@ -39,6 +39,7 @@ class ForkTest extends TestCase
             $process->wait();
             $this->fail('it should throw');
         } catch (SubProcessFailed $e) {
+            $this->assertSame($fn, $e->callable());
             $this->assertSame(1, $e->exitCode());
         }
     }

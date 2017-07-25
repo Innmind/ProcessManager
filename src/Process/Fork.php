@@ -11,10 +11,12 @@ use Innmind\ProcessManager\{
 
 final class Fork implements Process
 {
+    private $callable;
     private $pid;
 
     public function __construct(callable $callable)
     {
+        $this->callable = $callable;
         $pid = pcntl_fork();
 
         switch ($pid) {
@@ -51,7 +53,10 @@ final class Fork implements Process
         $exitCode = pcntl_wexitstatus($status);
 
         if ($exitCode !== 0) {
-            throw new SubProcessFailed($exitCode);
+            throw new SubProcessFailed(
+                $this->callable,
+                $exitCode
+            );
         }
     }
 
