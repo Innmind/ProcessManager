@@ -6,4 +6,9 @@ namespace Innmind\ProcessManager;
 interface Process
 {
     public function running(): bool;
+
+    /**
+     * Wait until the process ends
+     */
+    public function wait(): void;
 }

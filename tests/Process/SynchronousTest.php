@@ -21,5 +21,6 @@ class SynchronousTest extends TestCase
         $this->assertTrue((time() - $start) >= 1);
         $this->assertInstanceOf(Process::class, $process);
         $this->assertFalse($process->running());
+        $this->assertNull($process->wait());
     }
 }

@@ -51,10 +51,8 @@ final class Parallel implements Manager
 
     public function wait(): void
     {
-        do {
-            $this->processes = $this->processes->filter(static function(Process $process): bool {
-                return $process->running();
-            });
-        } while ($this->processes->size() > 0);
+        $this->processes->foreach(static function(Process $process): void {
+            $process->wait();
+        });
     }
 }
