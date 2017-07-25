@@ -17,6 +17,9 @@ composer require innmind/process-manager
 ## Usage
 
 ```php
+use Innmind\ProcessManager\Manager\Parallel;
+use Innmind\Immutable\Sequence;
+use GuzzleHttp\Client;
 
 $urls = new Sequence(
     'http://google.com',
