@@ -65,6 +65,23 @@ class ParallelTest extends TestCase
         $this->assertNull($parallel->wait());
     }
 
+    public function testParallelInvokation()
+    {
+        $start = time();
+        $parallel = (new Parallel)
+            ->schedule(static function() {
+                sleep(10);
+            })
+            ->schedule(static function() {
+                sleep(5);
+            })()
+            ->wait();
+        $delta = time() - $start;
+
+        $this->assertTrue($delta >= 10);
+        $this->assertTrue($delta < 15);
+    }
+
     public function testDoesntWaitWhenNotInvoked()
     {
         $parallel = new Parallel($this->createMock(Runner::class));
