@@ -16,7 +16,10 @@
     },
     "require": {
         "php": "~7.1",
-        "innmind/immutable": "^2.3"
+        "innmind/immutable": "^2.3",
+        "innmind/socket": "^1.1",
+        "ramsey/uuid": "^3.7",
+        "symfony/filesystem": "^3.3"
     },
     "autoload": {
         "psr-4": {
