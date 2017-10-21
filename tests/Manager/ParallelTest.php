@@ -23,7 +23,7 @@ class ParallelTest extends TestCase
 
     public function testSchedule()
     {
-        $parallel = new Parallel($this->createMock(Runner::class));
+        $parallel = new Parallel;
 
         $parallel2 = $parallel->schedule(function(){});
 
@@ -79,12 +79,12 @@ class ParallelTest extends TestCase
         $delta = time() - $start;
 
         $this->assertTrue($delta >= 10);
-        $this->assertTrue($delta < 15);
+        $this->assertTrue($delta < 11);
     }
 
     public function testDoesntWaitWhenNotInvoked()
     {
-        $parallel = new Parallel($this->createMock(Runner::class));
+        $parallel = new Parallel;
         $parallel = $parallel->schedule(static function() {
             sleep(1);
         });
