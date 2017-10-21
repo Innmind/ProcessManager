@@ -93,4 +93,33 @@ class ParallelTest extends TestCase
         $this->assertNull($parallel->wait());
         $this->assertTrue((time() - $start) < 1);
     }
+
+    /**
+     * @expectedException Innmind\ProcessManager\Exception\SubProcessFailed
+     */
+    public function testThrowWhenSubProcessFailed()
+    {
+        try {
+            $start = time();
+            (new Parallel)
+                ->schedule(static function() {
+                    sleep(10);
+                })
+                ->schedule(static function() {
+                    sleep(5);
+                })
+                ->schedule(static function() {
+                    throw new \Exception;
+                })
+                ->schedule(static function() {
+                    sleep(30);
+                })()
+                ->wait();
+        } finally {
+            $this->assertTrue(time() - $start >= 5);
+            $this->assertTrue(time() - $start <= 10);
+            //it finishes executing the first callable because we wait in the
+            //order of the schedules
+        }
+    }
 }
