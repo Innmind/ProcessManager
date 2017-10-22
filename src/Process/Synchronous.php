@@ -23,4 +23,8 @@ final class Synchronous implements Process
     public function wait(): void
     {
     }
+
+    public function kill(): void
+    {
+    }
 }

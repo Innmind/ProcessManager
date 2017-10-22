@@ -60,6 +60,11 @@ final class Fork implements Process
         }
     }
 
+    public function kill(): void
+    {
+        posix_kill($this->pid, SIGTERM);
+    }
+
     public function pid(): int
     {
         return $this->pid;

@@ -43,4 +43,17 @@ class ForkTest extends TestCase
             $this->assertSame(1, $e->exitCode());
         }
     }
+
+    public function testKill()
+    {
+        $start = time();
+        $process = new Fork(static function() {
+            sleep(10);
+        });
+
+        $this->assertNull($process->kill());
+        $this->assertNull($process->wait());
+        $this->assertFalse($process->running());
+        $this->assertTrue(time() - $start < 2);
+    }
 }
