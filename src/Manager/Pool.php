@@ -82,4 +82,16 @@ final class Pool implements Manager
                 $process->wait();
             });
     }
+
+    public function kill(): void
+    {
+        $this
+            ->processes
+            ->filter(static function(Process $process): bool {
+                return $process->running();
+            })
+            ->foreach(static function(Process $process): void {
+                $process->kill();
+            });
+    }
 }

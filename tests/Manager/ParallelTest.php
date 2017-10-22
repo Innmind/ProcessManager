@@ -7,7 +7,8 @@ use Innmind\ProcessManager\{
     Manager\Parallel,
     Manager,
     Runner,
-    Runner\SameProcess
+    Runner\SameProcess,
+    Process
 };
 use PHPUnit\Framework\TestCase;
 
@@ -121,5 +122,37 @@ class ParallelTest extends TestCase
             //it finishes executing the first callable because we wait in the
             //order of the schedules
         }
+    }
+
+    public function testKill()
+    {
+        $runner = $this->createMock(Runner::class);
+        $runner
+            ->expects($this->at(0))
+            ->method('__invoke')
+            ->willReturn($process = $this->createMock(Process::class));
+        $process
+            ->expects($this->once())
+            ->method('running')
+            ->willReturn(false);
+        $process
+            ->expects($this->never())
+            ->method('kill');
+        $runner
+            ->expects($this->at(1))
+            ->method('__invoke')
+            ->willReturn($process = $this->createMock(Process::class));
+        $process
+            ->expects($this->once())
+            ->method('running')
+            ->willReturn(true);
+        $process
+            ->expects($this->once())
+            ->method('kill');
+        $parallel = (new Parallel($runner))
+            ->schedule(function(){})
+            ->schedule(function(){})();
+
+        $this->assertNull($parallel->kill());
     }
 }

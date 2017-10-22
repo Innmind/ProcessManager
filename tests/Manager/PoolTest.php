@@ -7,7 +7,8 @@ use Innmind\ProcessManager\{
     Manager\Pool,
     Manager,
     Runner,
-    Runner\SameProcess
+    Runner\SameProcess,
+    Process
 };
 use PHPUnit\Framework\TestCase;
 
@@ -183,6 +184,38 @@ class PoolTest extends TestCase
             $this->assertTrue(time() - $start >= 5);
             $this->assertTrue(time() - $start <= 7);
         }
+    }
+
+    public function testKill()
+    {
+        $runner = $this->createMock(Runner::class);
+        $runner
+            ->expects($this->at(0))
+            ->method('__invoke')
+            ->willReturn($process = $this->createMock(Process::class));
+        $process
+            ->expects($this->once())
+            ->method('running')
+            ->willReturn(false);
+        $process
+            ->expects($this->never())
+            ->method('kill');
+        $runner
+            ->expects($this->at(1))
+            ->method('__invoke')
+            ->willReturn($process = $this->createMock(Process::class));
+        $process
+            ->expects($this->once())
+            ->method('running')
+            ->willReturn(true);
+        $process
+            ->expects($this->once())
+            ->method('kill');
+        $parallel = (new Pool(2, $runner))
+            ->schedule(function(){})
+            ->schedule(function(){})();
+
+        $this->assertNull($parallel->kill());
     }
 
     public function sizes(): array
