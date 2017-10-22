@@ -4,7 +4,7 @@ declare(strict_types = 1);
 namespace Tests\Innmind\ProcessManager\Manager;
 
 use Innmind\ProcessManager\{
-    Manager\Parallel,
+    Manager\Pool,
     Manager,
     Runner,
     Runner\SameProcess,
@@ -12,97 +12,161 @@ use Innmind\ProcessManager\{
 };
 use PHPUnit\Framework\TestCase;
 
-class ParallelTest extends TestCase
+class PoolTest extends TestCase
 {
     public function testInterface()
     {
         $this->assertInstanceOf(
             Manager::class,
-            new Parallel
+            new Pool(3)
         );
+    }
+
+    /**
+     * @expectedException Innmind\ProcessManager\Exception\DomainException
+     */
+    public function testThrowWhenPoolLowerThanOne()
+    {
+        new Pool(0);
     }
 
     public function testSchedule()
     {
-        $parallel = new Parallel;
+        $pool = new Pool(3);
 
-        $parallel2 = $parallel->schedule(function(){});
+        $pool2 = $pool->schedule(function(){});
 
-        $this->assertInstanceOf(Parallel::class, $parallel2);
-        $this->assertNotSame($parallel2, $parallel);
+        $this->assertInstanceOf(Pool::class, $pool2);
+        $this->assertNotSame($pool, $pool2);
     }
 
     public function testInvokationWithoutScheduledCallables()
     {
-        $parallel = new Parallel(
+        $pool = new Pool(
+            3,
             $runner = $this->createMock(Runner::class)
         );
         $runner
             ->expects($this->never())
             ->method('__invoke');
 
-        $parallel2 = $parallel();
+        $pool2 = $pool();
 
-        $this->assertInstanceOf(Parallel::class, $parallel2);
-        $this->assertNotSame($parallel2, $parallel);
+        $this->assertInstanceOf(Pool::class, $pool2);
+        $this->assertNotSame($pool2, $pool);
     }
 
     public function testInvokation()
     {
-        $parallel = new Parallel(new SameProcess);
         $start = time();
-        $parallel = $parallel->schedule(static function() {
-            sleep(1);
-        });
-        $parallel = $parallel->schedule(static function() {
-            sleep(1);
-        });
-
-        $this->assertTrue((time() - $start) < 2);
-
-        $parallel = $parallel();
-
-        $this->assertTrue((time() - $start) >= 2);
-        $this->assertNull($parallel->wait());
-    }
-
-    public function testParallelInvokation()
-    {
-        $start = time();
-        $parallel = (new Parallel)
+        $pool = (new Pool(2, new SameProcess))
             ->schedule(static function() {
                 sleep(10);
             })
             ->schedule(static function() {
                 sleep(5);
+            })
+            ->schedule(static function() {
+                sleep(3);
+            })()
+            ->wait();
+        $delta = time() - $start;
+
+        $this->assertTrue($delta >= 18);
+    }
+
+    public function testParallelInvokation()
+    {
+        $start = time();
+        (new Pool(2))
+            ->schedule(static function() {
+                sleep(10);
+            })
+            ->schedule(static function() {
+                sleep(5);
+            })
+            ->schedule(static function() {
+                sleep(3);
             })()
             ->wait();
         $delta = time() - $start;
 
         $this->assertTrue($delta >= 10);
-        $this->assertTrue($delta < 11);
+        $this->assertTrue($delta < 12);
+    }
+
+    /**
+     * @dataProvider sizes
+     */
+    public function testInvokationIsAffectedByPoolSize($size, $expected)
+    {
+        $start = time();
+        (new Pool($size))
+            ->schedule(static function() {
+                sleep(2);
+            })
+            ->schedule(static function() {
+                sleep(2);
+            })
+            ->schedule(static function() {
+                sleep(2);
+            })
+            ->schedule(static function() {
+                sleep(2);
+            })
+            ->schedule(static function() {
+                sleep(2);
+            })
+            ->schedule(static function() {
+                sleep(2);
+            })()
+            ->wait();
+        $delta = time() - $start;
+
+        $this->assertTrue($delta >= $expected);
+        $this->assertTrue($delta < ($expected + 2));
+    }
+
+    public function testInvokationWhenPoolHigherThanScheduled()
+    {
+        $start = time();
+        (new Pool(20))
+            ->schedule(static function() {
+                sleep(10);
+            })
+            ->schedule(static function() {
+                sleep(5);
+            })
+            ->schedule(static function() {
+                sleep(3);
+            })()
+            ->wait();
+        $delta = time() - $start;
+
+        $this->assertTrue($delta >= 10);
+        $this->assertTrue($delta < 12);
     }
 
     public function testDoesntWaitWhenNotInvoked()
     {
-        $parallel = new Parallel;
-        $parallel = $parallel->schedule(static function() {
+        $pool = new Pool(3);
+        $pool = $pool->schedule(static function() {
             sleep(1);
         });
 
         $start = time();
-        $this->assertNull($parallel->wait());
+        $this->assertNull($pool->wait());
         $this->assertTrue((time() - $start) < 1);
     }
 
     /**
      * @expectedException Innmind\ProcessManager\Exception\SubProcessFailed
      */
-    public function testThrowWhenSubProcessFailed()
+    public function testThrowWhenChildFailed()
     {
         try {
             $start = time();
-            (new Parallel)
+            (new Pool(2))
                 ->schedule(static function() {
                     sleep(10);
                 })
@@ -118,9 +182,7 @@ class ParallelTest extends TestCase
                 ->wait();
         } finally {
             $this->assertTrue(time() - $start >= 5);
-            $this->assertTrue(time() - $start <= 10);
-            //it finishes executing the first callable because we wait in the
-            //order of the schedules
+            $this->assertTrue(time() - $start <= 7);
         }
     }
 
@@ -149,7 +211,7 @@ class ParallelTest extends TestCase
         $process
             ->expects($this->once())
             ->method('kill');
-        $parallel = (new Parallel($runner))
+        $parallel = (new Pool(2, $runner))
             ->schedule(function(){})
             ->schedule(function(){})();
 
@@ -159,7 +221,7 @@ class ParallelTest extends TestCase
     public function testRealKill()
     {
         $start = time();
-        $parallel = (new Parallel)
+        $parallel = (new Pool(2))
             ->schedule(function(){
                 sleep(10);
             })
@@ -173,5 +235,17 @@ class ParallelTest extends TestCase
             //pass
         }
         $this->assertTrue(time() - $start < 2);
+    }
+
+    public function sizes(): array
+    {
+        return [
+            [1, 12],
+            [2, 6],
+            [3, 4],
+            [4, 4],
+            [5, 4],
+            [6, 2],
+        ];
     }
 }

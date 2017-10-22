@@ -7,18 +7,26 @@ use Innmind\ProcessManager\{
     Manager,
     Runner,
     Process,
-    Runner\SubProcess
+    Runner\SubProcess,
+    Runner\Buffer,
+    Exception\DomainException
 };
 use Innmind\Immutable\Stream;
 
-final class Parallel implements Manager
+final class Pool implements Manager
 {
     private $run;
+    private $buffer;
     private $scheduled;
     private $processes;
 
-    public function __construct(Runner $run = null)
+    public function __construct(int $size, Runner $run = null)
     {
+        if ($size < 1) {
+            throw new DomainException;
+        }
+
+        $this->size = $size;
         $this->run = $run ?? new SubProcess;
         $this->scheduled = new Stream('callable');
         $this->processes = new Stream(Process::class);
@@ -29,6 +37,7 @@ final class Parallel implements Manager
         $self = clone $this;
         $self->scheduled = $self->scheduled->add($callable);
         $self->processes = $self->processes->clear();
+        $self->buffer = null;
 
         return $self;
     }
@@ -36,13 +45,15 @@ final class Parallel implements Manager
     public function __invoke(): Manager
     {
         $self = clone $this;
-        $self->processes = $this
+        $self->buffer = new Buffer($this->size, $this->run);
+        $self->processes = $self
             ->scheduled
+            ->take($self->size)
             ->reduce(
                 $self->processes->clear(),
-                function(Stream $carry, callable $callable): Stream {
+                static function(Stream $carry, callable $callable) use ($self): Stream {
                     return $carry->add(
-                        ($this->run)($callable)
+                        ($self->buffer)($callable)
                     );
                 }
             );
@@ -52,9 +63,24 @@ final class Parallel implements Manager
 
     public function wait(): void
     {
-        $this->processes->foreach(static function(Process $process): void {
-            $process->wait();
-        });
+        if (is_null($this->buffer)) {
+            return; //do not wait if not even started
+        }
+
+        $this
+            ->scheduled
+            ->drop($this->size)
+            ->reduce(
+                $this->processes,
+                function(Stream $carry, callable $callable): Stream {
+                    return $carry->add(
+                        ($this->buffer)($callable)
+                    );
+                }
+            )
+            ->foreach(static function(Process $process): void {
+                $process->wait();
+            });
     }
 
     public function kill(): void
@@ -67,5 +93,5 @@ final class Parallel implements Manager
             ->foreach(static function(Process $process): void {
                 $process->kill();
             });
-        }
+    }
 }

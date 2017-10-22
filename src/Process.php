@@ -11,4 +11,5 @@ interface Process
      * Wait until the process ends
      */
     public function wait(): void;
+    public function kill(): void;
 }

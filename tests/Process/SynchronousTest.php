@@ -22,5 +22,6 @@ class SynchronousTest extends TestCase
         $this->assertInstanceOf(Process::class, $process);
         $this->assertFalse($process->running());
         $this->assertNull($process->wait());
+        $this->assertNull($process->kill());
     }
 }
