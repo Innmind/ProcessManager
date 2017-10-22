@@ -94,6 +94,38 @@ class PoolTest extends TestCase
         $this->assertTrue($delta < 12);
     }
 
+    /**
+     * @dataProvider sizes
+     */
+    public function testInvokationIsAffectedByPoolSize($size, $expected)
+    {
+        $start = time();
+        (new Pool($size))
+            ->schedule(static function() {
+                sleep(2);
+            })
+            ->schedule(static function() {
+                sleep(2);
+            })
+            ->schedule(static function() {
+                sleep(2);
+            })
+            ->schedule(static function() {
+                sleep(2);
+            })
+            ->schedule(static function() {
+                sleep(2);
+            })
+            ->schedule(static function() {
+                sleep(2);
+            })()
+            ->wait();
+        $delta = time() - $start;
+
+        $this->assertTrue($delta >= $expected);
+        $this->assertTrue($delta < ($expected + 1));
+    }
+
     public function testInvokationWhenPoolHigherThanScheduled()
     {
         $start = time();
@@ -154,5 +186,17 @@ class PoolTest extends TestCase
             //the connection close of the second it still says the process is
             //running so we can't yet detect it has failed
         }
+    }
+
+    public function sizes(): array
+    {
+        return [
+            [1, 12],
+            [2, 6],
+            [3, 4],
+            [4, 4],
+            [5, 4],
+            [6, 2],
+        ];
     }
 }
