@@ -181,10 +181,7 @@ class PoolTest extends TestCase
                 ->wait();
         } finally {
             $this->assertTrue(time() - $start >= 5);
-            $this->assertTrue(time() - $start <= 10);
-            //it finishes executing the first callable because when we receive
-            //the connection close of the second it still says the process is
-            //running so we can't yet detect it has failed
+            $this->assertTrue(time() - $start <= 7);
         }
     }
 
