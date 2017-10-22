@@ -123,7 +123,7 @@ class PoolTest extends TestCase
         $delta = time() - $start;
 
         $this->assertTrue($delta >= $expected);
-        $this->assertTrue($delta < ($expected + 1));
+        $this->assertTrue($delta < ($expected + 2));
     }
 
     public function testInvokationWhenPoolHigherThanScheduled()
