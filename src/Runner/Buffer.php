@@ -85,7 +85,7 @@ final class Buffer implements Runner
 
         do {
             $streams = $select();
-        } while($streams->get('read')->size() === 0);
+        } while ($streams->get('read')->size() === 0);
 
         $this->running = $streams
             ->get('read')
