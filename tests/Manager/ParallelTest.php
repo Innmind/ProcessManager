@@ -155,4 +155,23 @@ class ParallelTest extends TestCase
 
         $this->assertNull($parallel->kill());
     }
+
+    public function testRealKill()
+    {
+        $start = time();
+        $parallel = (new Parallel)
+            ->schedule(function(){
+                sleep(10);
+            })
+            ->schedule(function(){
+                sleep(5);
+            })();
+        $this->assertNull($parallel->kill());
+        try {
+            $this->assertNull($parallel->wait());
+        } catch (\Throwable $e) {
+            //pass
+        }
+        $this->assertTrue(time() - $start < 2);
+    }
 }

@@ -52,8 +52,5 @@ class ForkTest extends TestCase
         });
 
         $this->assertNull($process->kill());
-        $this->assertNull($process->wait());
-        $this->assertFalse($process->running());
-        $this->assertTrue(time() - $start < 2);
     }
 }
