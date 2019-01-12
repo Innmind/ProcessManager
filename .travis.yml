@@ -6,13 +6,10 @@ php:
 matrix:
     allow_failures:
       - php: nightly
-before_script:
-  - export PATH=~/.composer/vendor/bin:$PATH
-  - composer global require infection/infection
-  - composer install
+before_script: composer install
 script:
   - vendor/bin/phpunit --coverage-clover=coverage.clover
-  - if [ "$TRAVIS_PHP_VERSION" != "nightly" ]; then infection -s --only-covered --min-msi=100; fi
+  - if [ "$TRAVIS_PHP_VERSION" != "nightly" ]; then vendor/bin/infection -s --only-covered --min-msi=100; fi
 after_script:
     - if [ "$TRAVIS_PHP_VERSION" != "nightly" ]; then wget https://scrutinizer-ci.com/ocular.phar; fi
     - if [ "$TRAVIS_PHP_VERSION" != "nightly" ]; then php ocular.phar code-coverage:upload --format=php-clover coverage.clover; fi
