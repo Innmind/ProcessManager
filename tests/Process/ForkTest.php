@@ -6,7 +6,13 @@ namespace Tests\Innmind\ProcessManager\Process;
 use Innmind\ProcessManager\{
     Process\Fork,
     Process,
-    Exception\SubProcessFailed
+    Exception\SubProcessFailed,
+    Exception\CouldNotFork,
+};
+use Innmind\OperatingSystem\{
+    CurrentProcess\Generic,
+    CurrentProcess,
+    Exception\ForkFailed,
 };
 use PHPUnit\Framework\TestCase;
 
@@ -15,7 +21,7 @@ class ForkTest extends TestCase
     public function testInterface()
     {
         $start = time();
-        $process = new Fork(static function() {
+        $process = new Fork(new Generic, static function() {
             sleep(2);
         });
 
@@ -30,7 +36,7 @@ class ForkTest extends TestCase
 
     public function testThrowWhenCallableFails()
     {
-        $process = new Fork($fn = static function() {
+        $process = new Fork(new Generic, $fn = static function() {
             sleep(2);
             throw new \Exception;
         });
@@ -46,11 +52,27 @@ class ForkTest extends TestCase
 
     public function testKill()
     {
-        $start = time();
-        $process = new Fork(static function() {
+        $process = new Fork(new Generic, static function() {
             sleep(10);
         });
 
         $this->assertNull($process->kill());
+    }
+
+    public function testThrowWhenForkFailed()
+    {
+        $process = $this->createMock(CurrentProcess::class);
+        $process
+            ->expects($this->once())
+            ->method('fork')
+            ->will($this->throwException(new ForkFailed));
+
+        try {
+            new Fork($process, $fn = function() {});
+
+            $this->fail('it should throw');
+        } catch (CouldNotFork $e) {
+            $this->assertSame($fn, $e->callable());
+        }
     }
 }

@@ -6,20 +6,24 @@ namespace Tests\Innmind\ProcessManager\Runner;
 use Innmind\ProcessManager\{
     Runner\SubProcess,
     Runner,
-    Process\Fork
+    Process\Fork,
 };
+use Innmind\OperatingSystem\CurrentProcess;
 use PHPUnit\Framework\TestCase;
 
 class SubProcessTest extends TestCase
 {
     public function testInterface()
     {
-        $this->assertInstanceOf(Runner::class, new SubProcess);
+        $this->assertInstanceOf(
+            Runner::class,
+            new SubProcess($this->createMock(CurrentProcess::class))
+        );
     }
 
     public function testInvokation()
     {
-        $run = new SubProcess;
+        $run = new SubProcess(new CurrentProcess\Generic);
 
         $process = $run($fn = static function() {
             sleep(1);

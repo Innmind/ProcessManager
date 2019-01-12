@@ -8,8 +8,10 @@ use Innmind\ProcessManager\{
     Manager,
     Runner,
     Runner\SameProcess,
-    Process
+    Runner\SubProcess,
+    Process,
 };
+use Innmind\OperatingSystem\CurrentProcess\Generic;
 use PHPUnit\Framework\TestCase;
 
 class PoolTest extends TestCase
@@ -18,7 +20,7 @@ class PoolTest extends TestCase
     {
         $this->assertInstanceOf(
             Manager::class,
-            new Pool(3)
+            new Pool(3, $this->createMock(Runner::class))
         );
     }
 
@@ -27,12 +29,12 @@ class PoolTest extends TestCase
      */
     public function testThrowWhenPoolLowerThanOne()
     {
-        new Pool(0);
+        new Pool(0, $this->createMock(Runner::class));
     }
 
     public function testSchedule()
     {
-        $pool = new Pool(3);
+        $pool = new Pool(3, $this->createMock(Runner::class));
 
         $pool2 = $pool->schedule(function(){});
 
@@ -78,7 +80,7 @@ class PoolTest extends TestCase
     public function testParallelInvokation()
     {
         $start = time();
-        (new Pool(2))
+        (new Pool(2, new SubProcess(new Generic)))
             ->schedule(static function() {
                 sleep(10);
             })
@@ -101,7 +103,7 @@ class PoolTest extends TestCase
     public function testInvokationIsAffectedByPoolSize($size, $expected)
     {
         $start = time();
-        (new Pool($size))
+        (new Pool($size, new SubProcess(new Generic)))
             ->schedule(static function() {
                 sleep(2);
             })
@@ -130,7 +132,7 @@ class PoolTest extends TestCase
     public function testInvokationWhenPoolHigherThanScheduled()
     {
         $start = time();
-        (new Pool(20))
+        (new Pool(20, new SubProcess(new Generic)))
             ->schedule(static function() {
                 sleep(10);
             })
@@ -149,7 +151,7 @@ class PoolTest extends TestCase
 
     public function testDoesntWaitWhenNotInvoked()
     {
-        $pool = new Pool(3);
+        $pool = new Pool(3, new SubProcess(new Generic));
         $pool = $pool->schedule(static function() {
             sleep(1);
         });
@@ -166,7 +168,7 @@ class PoolTest extends TestCase
     {
         try {
             $start = time();
-            (new Pool(2))
+            (new Pool(2, new SubProcess(new Generic)))
                 ->schedule(static function() {
                     sleep(10);
                 })
@@ -221,7 +223,7 @@ class PoolTest extends TestCase
     public function testRealKill()
     {
         $start = time();
-        $parallel = (new Pool(2))
+        $parallel = (new Pool(2, new SubProcess(new Generic)))
             ->schedule(function(){
                 sleep(10);
             })

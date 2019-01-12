@@ -8,22 +8,23 @@ use Innmind\ProcessManager\{
     Exception\CouldNotFork,
     Exception\SubProcessFailed
 };
+use Innmind\OperatingSystem\{
+    CurrentProcess,
+    Exception\ForkFailed,
+};
 
 final class Fork implements Process
 {
     private $callable;
-    private $pid;
+    private $child;
 
-    public function __construct(callable $callable)
+    public function __construct(CurrentProcess $process, callable $callable)
     {
         $this->callable = $callable;
-        $pid = pcntl_fork();
+        try {
+            $side = $process->fork();
 
-        switch ($pid) {
-            case -1:
-                throw new CouldNotFork($callable);
-
-            case 0:
+            if (!$side->parent()) {
                 try {
                     $this->registerSignalHandlers();
 
@@ -32,16 +33,17 @@ final class Fork implements Process
                 } catch (\Throwable $e) {
                     exit(1);
                 }
-
-            default:
-                $this->pid = $pid;
-                break;
+            }
+        } catch (ForkFailed $e) {
+            throw new CouldNotFork($callable);
         }
+
+        $this->child = $process->children()->get($side->child());
     }
 
     public function running(): bool
     {
-        return is_int(posix_getpgid($this->pid));
+        return $this->child->running();
     }
 
     /**
@@ -49,25 +51,24 @@ final class Fork implements Process
      */
     public function wait(): void
     {
-        pcntl_waitpid($this->pid, $status);
-        $exitCode = pcntl_wexitstatus($status);
+        $exitCode = $this->child->wait();
 
-        if ($exitCode !== 0) {
+        if ($exitCode->toInt() !== 0) {
             throw new SubProcessFailed(
                 $this->callable,
-                $exitCode
+                $exitCode->toInt()
             );
         }
     }
 
     public function kill(): void
     {
-        posix_kill($this->pid, SIGTERM);
+        $this->child->terminate();
     }
 
     public function pid(): int
     {
-        return $this->pid;
+        return $this->child->id()->toInt();
     }
 
     private function registerSignalHandlers(): void

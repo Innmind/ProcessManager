@@ -7,9 +7,8 @@ use Innmind\ProcessManager\{
     Manager,
     Runner,
     Process,
-    Runner\SubProcess,
     Runner\Buffer,
-    Exception\DomainException
+    Exception\DomainException,
 };
 use Innmind\Immutable\Stream;
 
@@ -20,14 +19,14 @@ final class Pool implements Manager
     private $scheduled;
     private $processes;
 
-    public function __construct(int $size, Runner $run = null)
+    public function __construct(int $size, Runner $run)
     {
         if ($size < 1) {
             throw new DomainException;
         }
 
         $this->size = $size;
-        $this->run = $run ?? new SubProcess;
+        $this->run = $run;
         $this->scheduled = new Stream('callable');
         $this->processes = new Stream(Process::class);
     }

@@ -9,7 +9,6 @@ class CouldNotFork extends RuntimeException
 
     public function __construct(callable $callable)
     {
-        parent::__construct();
         $this->callable = $callable;
     }
 

@@ -7,7 +7,6 @@ use Innmind\ProcessManager\{
     Manager,
     Runner,
     Process,
-    Runner\SubProcess
 };
 use Innmind\Immutable\Stream;
 
@@ -17,9 +16,9 @@ final class Parallel implements Manager
     private $scheduled;
     private $processes;
 
-    public function __construct(Runner $run = null)
+    public function __construct(Runner $run)
     {
-        $this->run = $run ?? new SubProcess;
+        $this->run = $run;
         $this->scheduled = new Stream('callable');
         $this->processes = new Stream(Process::class);
     }

@@ -7,8 +7,9 @@ use Innmind\ProcessManager\{
     Runner\Buffer,
     Runner\SubProcess,
     Runner,
-    Process\Fork
+    Process\Fork,
 };
+use Innmind\OperatingSystem\CurrentProcess\Generic;
 use PHPUnit\Framework\TestCase;
 
 class BufferTest extends TestCase
@@ -37,7 +38,7 @@ class BufferTest extends TestCase
 
     public function testInvokeDirectly()
     {
-        $buffer = new Buffer(1, new SubProcess);
+        $buffer = new Buffer(1, new SubProcess(new Generic));
         $start = time();
 
         $process = $buffer(function(): void {
@@ -50,7 +51,7 @@ class BufferTest extends TestCase
 
     public function testBufferInvokation()
     {
-        $buffer = new Buffer(2, new SubProcess);
+        $buffer = new Buffer(2, new SubProcess(new Generic));
         $sleep = function(): void {
             sleep(5);
         };
