@@ -17,7 +17,11 @@ composer require innmind/process-manager
 ## Usage
 
 ```php
-use Innmind\ProcessManager\Manager\Parallel;
+use Innmind\ProcessManager\{
+    Manager\Parallel,
+    Runner\SubProcess,
+};
+use Innmind\OperatingSystem\Factory;
 use Innmind\Immutable\Sequence;
 use GuzzleHttp\Client;
 
@@ -27,8 +31,9 @@ $urls = new Sequence(
     'http://wikipedia.org'
 );
 $http = new Client;
+$runner = new SubProcess(Factory::buid()->process());
 $crawl = $urls->reduce(
-    new Parallel,
+    new Parallel($runner),
     static function(Parallel $parallel, string $url) use ($http): Parallel {
         return $parallel->schedule(static function() use ($http, $url): void {
             file_put_contents(
@@ -51,7 +56,7 @@ As you may have noticed `Parallel::__invoke()` return a new instance, this means
 
 ### `Pool`
 
-`Pool` implements the same interface as `Parallel`, but you need to specify the maximum number of sub processes you want to allow, ie `new Pool(2)` will allow at most 2 sub processes in parallel.
+`Pool` implements the same interface as `Parallel`, but you need to specify the maximum number of sub processes you want to allow, ie `new Pool(2, $runner)` will allow at most 2 sub processes in parallel.
 
 **Important**: when you `invoke` your pool only the first `n` scheduled functions will be called, you absolutely need to call the `wait` method so the remaining functions are called.
 
@@ -60,7 +65,7 @@ Example:
 ```php
 use Innmind\ProcessManager\Manager\Pool;
 
-$pool = (new Pool(2))
+$pool = (new Pool(2, $runner))
     ->schedule(function() {
         sleep(10);
     })
