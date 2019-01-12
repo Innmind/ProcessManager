@@ -8,8 +8,10 @@ use Innmind\ProcessManager\{
     Manager,
     Runner,
     Runner\SameProcess,
-    Process
+    Runner\SubProcess,
+    Process,
 };
+use Innmind\OperatingSystem\CurrentProcess\Generic;
 use PHPUnit\Framework\TestCase;
 
 class ParallelTest extends TestCase
@@ -18,13 +20,13 @@ class ParallelTest extends TestCase
     {
         $this->assertInstanceOf(
             Manager::class,
-            new Parallel
+            new Parallel($this->createMock(Runner::class))
         );
     }
 
     public function testSchedule()
     {
-        $parallel = new Parallel;
+        $parallel = new Parallel(new SubProcess(new Generic));
 
         $parallel2 = $parallel->schedule(function(){});
 
@@ -69,7 +71,7 @@ class ParallelTest extends TestCase
     public function testParallelInvokation()
     {
         $start = time();
-        $parallel = (new Parallel)
+        $parallel = (new Parallel(new SubProcess(new Generic)))
             ->schedule(static function() {
                 sleep(10);
             })
@@ -85,7 +87,7 @@ class ParallelTest extends TestCase
 
     public function testDoesntWaitWhenNotInvoked()
     {
-        $parallel = new Parallel;
+        $parallel = new Parallel(new SubProcess(new Generic));
         $parallel = $parallel->schedule(static function() {
             sleep(1);
         });
@@ -102,7 +104,7 @@ class ParallelTest extends TestCase
     {
         try {
             $start = time();
-            (new Parallel)
+            (new Parallel(new SubProcess(new Generic)))
                 ->schedule(static function() {
                     sleep(10);
                 })
@@ -159,7 +161,7 @@ class ParallelTest extends TestCase
     public function testRealKill()
     {
         $start = time();
-        $parallel = (new Parallel)
+        $parallel = (new Parallel(new SubProcess(new Generic)))
             ->schedule(function(){
                 sleep(10);
             })
