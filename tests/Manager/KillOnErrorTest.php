@@ -53,9 +53,6 @@ class KillOnErrorTest extends TestCase
         $this->assertNotSame($manager, $manager2);
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testKillOnInvokationError()
     {
         $inner = $this->createMock(Manager::class);
@@ -67,6 +64,8 @@ class KillOnErrorTest extends TestCase
             ->expects($this->once())
             ->method('kill');
         $manager = new KillOnError($inner);
+
+        $this->expectException(\Exception::class);
 
         $manager();
     }
@@ -85,9 +84,6 @@ class KillOnErrorTest extends TestCase
         $this->assertNull($manager->wait());
     }
 
-    /**
-     * @expectedException Exception
-     */
     public function testKillOnWaitError()
     {
         $inner = $this->createMock(Manager::class);
@@ -99,6 +95,8 @@ class KillOnErrorTest extends TestCase
             ->expects($this->once())
             ->method('kill');
         $manager = new KillOnError($inner);
+
+        $this->expectException(\Exception::class);
 
         $manager->wait();
     }

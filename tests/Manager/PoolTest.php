@@ -10,6 +10,8 @@ use Innmind\ProcessManager\{
     Runner\SameProcess,
     Runner\SubProcess,
     Process,
+    Exception\DomainException,
+    Exception\SubProcessFailed,
 };
 use Innmind\OperatingSystem\CurrentProcess\Generic;
 use Innmind\TimeContinuum\TimeContinuumInterface;
@@ -26,11 +28,10 @@ class PoolTest extends TestCase
         );
     }
 
-    /**
-     * @expectedException Innmind\ProcessManager\Exception\DomainException
-     */
     public function testThrowWhenPoolLowerThanOne()
     {
+        $this->expectException(DomainException::class);
+
         new Pool(0, $this->createMock(Runner::class));
     }
 
@@ -175,11 +176,10 @@ class PoolTest extends TestCase
         $this->assertTrue((time() - $start) < 1);
     }
 
-    /**
-     * @expectedException Innmind\ProcessManager\Exception\SubProcessFailed
-     */
     public function testThrowWhenChildFailed()
     {
+        $this->expectException(SubProcessFailed::class);
+
         try {
             $start = time();
             (new Pool(2, new SubProcess(new Generic(

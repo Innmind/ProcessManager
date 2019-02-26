@@ -8,6 +8,7 @@ use Innmind\ProcessManager\{
     Runner\SubProcess,
     Runner,
     Process\Fork,
+    Exception\DomainException,
 };
 use Innmind\OperatingSystem\CurrentProcess\Generic;
 use Innmind\TimeContinuum\TimeContinuumInterface;
@@ -27,11 +28,10 @@ class BufferTest extends TestCase
         );
     }
 
-    /**
-     * @expectedException Innmind\ProcessManager\Exception\DomainException
-     */
     public function testThrowWhenBufferSizeTooLow()
     {
+        $this->expectException(DomainException::class);
+
         new Buffer(
             0,
             $this->createMock(Runner::class)

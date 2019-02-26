@@ -10,6 +10,7 @@ use Innmind\ProcessManager\{
     Runner\SameProcess,
     Runner\SubProcess,
     Process,
+    Exception\SubProcessFailed,
 };
 use Innmind\OperatingSystem\CurrentProcess\Generic;
 use Innmind\TimeContinuum\TimeContinuumInterface;
@@ -108,11 +109,10 @@ class ParallelTest extends TestCase
         $this->assertTrue((time() - $start) < 1);
     }
 
-    /**
-     * @expectedException Innmind\ProcessManager\Exception\SubProcessFailed
-     */
     public function testThrowWhenSubProcessFailed()
     {
+        $this->expectException(SubProcessFailed::class);
+
         try {
             $start = time();
             (new Parallel(new SubProcess(new Generic(
