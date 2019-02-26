@@ -8,8 +8,11 @@ use Innmind\ProcessManager\{
     Runner\SubProcess,
     Runner,
     Process\Fork,
+    Exception\DomainException,
 };
 use Innmind\OperatingSystem\CurrentProcess\Generic;
+use Innmind\TimeContinuum\TimeContinuumInterface;
+use Innmind\TimeWarp\Halt;
 use PHPUnit\Framework\TestCase;
 
 class BufferTest extends TestCase
@@ -25,11 +28,10 @@ class BufferTest extends TestCase
         );
     }
 
-    /**
-     * @expectedException Innmind\ProcessManager\Exception\DomainException
-     */
     public function testThrowWhenBufferSizeTooLow()
     {
+        $this->expectException(DomainException::class);
+
         new Buffer(
             0,
             $this->createMock(Runner::class)
@@ -38,7 +40,10 @@ class BufferTest extends TestCase
 
     public function testInvokeDirectly()
     {
-        $buffer = new Buffer(1, new SubProcess(new Generic));
+        $buffer = new Buffer(1, new SubProcess(new Generic(
+            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Halt::class)
+        )));
         $start = time();
 
         $process = $buffer(function(): void {
@@ -51,7 +56,10 @@ class BufferTest extends TestCase
 
     public function testBufferInvokation()
     {
-        $buffer = new Buffer(2, new SubProcess(new Generic));
+        $buffer = new Buffer(2, new SubProcess(new Generic(
+            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Halt::class)
+        )));
         $sleep = function(): void {
             sleep(5);
         };

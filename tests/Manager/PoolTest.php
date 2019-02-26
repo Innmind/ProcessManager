@@ -10,8 +10,12 @@ use Innmind\ProcessManager\{
     Runner\SameProcess,
     Runner\SubProcess,
     Process,
+    Exception\DomainException,
+    Exception\SubProcessFailed,
 };
 use Innmind\OperatingSystem\CurrentProcess\Generic;
+use Innmind\TimeContinuum\TimeContinuumInterface;
+use Innmind\TimeWarp\Halt;
 use PHPUnit\Framework\TestCase;
 
 class PoolTest extends TestCase
@@ -24,11 +28,10 @@ class PoolTest extends TestCase
         );
     }
 
-    /**
-     * @expectedException Innmind\ProcessManager\Exception\DomainException
-     */
     public function testThrowWhenPoolLowerThanOne()
     {
+        $this->expectException(DomainException::class);
+
         new Pool(0, $this->createMock(Runner::class));
     }
 
@@ -80,7 +83,10 @@ class PoolTest extends TestCase
     public function testParallelInvokation()
     {
         $start = time();
-        (new Pool(2, new SubProcess(new Generic)))
+        (new Pool(2, new SubProcess(new Generic(
+            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Halt::class)
+        ))))
             ->schedule(static function() {
                 sleep(10);
             })
@@ -103,7 +109,10 @@ class PoolTest extends TestCase
     public function testInvokationIsAffectedByPoolSize($size, $expected)
     {
         $start = time();
-        (new Pool($size, new SubProcess(new Generic)))
+        (new Pool($size, new SubProcess(new Generic(
+            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Halt::class)
+        ))))
             ->schedule(static function() {
                 sleep(2);
             })
@@ -132,7 +141,10 @@ class PoolTest extends TestCase
     public function testInvokationWhenPoolHigherThanScheduled()
     {
         $start = time();
-        (new Pool(20, new SubProcess(new Generic)))
+        (new Pool(20, new SubProcess(new Generic(
+            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Halt::class)
+        ))))
             ->schedule(static function() {
                 sleep(10);
             })
@@ -151,7 +163,10 @@ class PoolTest extends TestCase
 
     public function testDoesntWaitWhenNotInvoked()
     {
-        $pool = new Pool(3, new SubProcess(new Generic));
+        $pool = new Pool(3, new SubProcess(new Generic(
+            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Halt::class)
+        )));
         $pool = $pool->schedule(static function() {
             sleep(1);
         });
@@ -161,14 +176,16 @@ class PoolTest extends TestCase
         $this->assertTrue((time() - $start) < 1);
     }
 
-    /**
-     * @expectedException Innmind\ProcessManager\Exception\SubProcessFailed
-     */
     public function testThrowWhenChildFailed()
     {
+        $this->expectException(SubProcessFailed::class);
+
         try {
             $start = time();
-            (new Pool(2, new SubProcess(new Generic)))
+            (new Pool(2, new SubProcess(new Generic(
+                $this->createMock(TimeContinuumInterface::class),
+                $this->createMock(Halt::class)
+            ))))
                 ->schedule(static function() {
                     sleep(10);
                 })
@@ -223,7 +240,10 @@ class PoolTest extends TestCase
     public function testRealKill()
     {
         $start = time();
-        $parallel = (new Pool(2, new SubProcess(new Generic)))
+        $parallel = (new Pool(2, new SubProcess(new Generic(
+            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Halt::class)
+        ))))
             ->schedule(function(){
                 sleep(10);
             })

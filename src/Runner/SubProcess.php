@@ -9,6 +9,7 @@ use Innmind\ProcessManager\{
     Process\Fork,
 };
 use Innmind\OperatingSystem\CurrentProcess;
+use Innmind\Signals\Signal;
 use Innmind\Immutable\Set;
 
 final class SubProcess implements Runner
@@ -20,7 +21,7 @@ final class SubProcess implements Runner
     {
         $this->process = $process;
         $this->processes = new Set(Fork::class);
-        $this->registerSignalHandlers();
+        $this->registerSignalHandlers($process);
     }
 
     public function __invoke(callable $callable): Process
@@ -31,23 +32,22 @@ final class SubProcess implements Runner
         return $process;
     }
 
-    private function registerSignalHandlers(): void
+    private function registerSignalHandlers(CurrentProcess $process): void
     {
-        pcntl_async_signals(true);
-        $forward = function(int $signal): void {
+        $forward = function(Signal $signal): void {
             $this
                 ->processes
                 ->filter(static function(Fork $process): bool {
                     return $process->running();
                 })
                 ->foreach(static function(Fork $process) use ($signal): void {
-                    posix_kill($process->pid(), $signal);
+                    \posix_kill($process->pid(), $signal->toInt());
                 });
         };
 
-        pcntl_signal(SIGHUP, $forward);
-        pcntl_signal(SIGINT, $forward);
-        pcntl_signal(SIGABRT, $forward);
-        pcntl_signal(SIGTERM, $forward);
+        $process->signals()->listen(Signal::hangup(), $forward);
+        $process->signals()->listen(Signal::interrupt(), $forward);
+        $process->signals()->listen(Signal::abort(), $forward);
+        $process->signals()->listen(Signal::terminate(), $forward);
     }
 }
