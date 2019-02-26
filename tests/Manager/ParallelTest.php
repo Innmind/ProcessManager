@@ -12,6 +12,8 @@ use Innmind\ProcessManager\{
     Process,
 };
 use Innmind\OperatingSystem\CurrentProcess\Generic;
+use Innmind\TimeContinuum\TimeContinuumInterface;
+use Innmind\TimeWarp\Halt;
 use PHPUnit\Framework\TestCase;
 
 class ParallelTest extends TestCase
@@ -26,7 +28,10 @@ class ParallelTest extends TestCase
 
     public function testSchedule()
     {
-        $parallel = new Parallel(new SubProcess(new Generic));
+        $parallel = new Parallel(new SubProcess(new Generic(
+            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Halt::class)
+        )));
 
         $parallel2 = $parallel->schedule(function(){});
 
@@ -71,7 +76,10 @@ class ParallelTest extends TestCase
     public function testParallelInvokation()
     {
         $start = time();
-        $parallel = (new Parallel(new SubProcess(new Generic)))
+        $parallel = (new Parallel(new SubProcess(new Generic(
+            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Halt::class)
+        ))))
             ->schedule(static function() {
                 sleep(10);
             })
@@ -87,7 +95,10 @@ class ParallelTest extends TestCase
 
     public function testDoesntWaitWhenNotInvoked()
     {
-        $parallel = new Parallel(new SubProcess(new Generic));
+        $parallel = new Parallel(new SubProcess(new Generic(
+            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Halt::class)
+        )));
         $parallel = $parallel->schedule(static function() {
             sleep(1);
         });
@@ -104,7 +115,10 @@ class ParallelTest extends TestCase
     {
         try {
             $start = time();
-            (new Parallel(new SubProcess(new Generic)))
+            (new Parallel(new SubProcess(new Generic(
+                $this->createMock(TimeContinuumInterface::class),
+                $this->createMock(Halt::class)
+            ))))
                 ->schedule(static function() {
                     sleep(10);
                 })
@@ -161,7 +175,10 @@ class ParallelTest extends TestCase
     public function testRealKill()
     {
         $start = time();
-        $parallel = (new Parallel(new SubProcess(new Generic)))
+        $parallel = (new Parallel(new SubProcess(new Generic(
+            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Halt::class)
+        ))))
             ->schedule(function(){
                 sleep(10);
             })

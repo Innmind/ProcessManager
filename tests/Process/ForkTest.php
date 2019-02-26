@@ -14,6 +14,8 @@ use Innmind\OperatingSystem\{
     CurrentProcess,
     Exception\ForkFailed,
 };
+use Innmind\TimeContinuum\TimeContinuumInterface;
+use Innmind\TimeWarp\Halt;
 use PHPUnit\Framework\TestCase;
 
 class ForkTest extends TestCase
@@ -21,9 +23,15 @@ class ForkTest extends TestCase
     public function testInterface()
     {
         $start = time();
-        $process = new Fork(new Generic, static function() {
-            sleep(2);
-        });
+        $process = new Fork(
+            new Generic(
+                $this->createMock(TimeContinuumInterface::class),
+                $this->createMock(Halt::class)
+            ),
+            static function() {
+                sleep(2);
+            }
+        );
 
         $this->assertTrue((time() - $start) < 1);
         $this->assertInstanceOf(Process::class, $process);
@@ -36,10 +44,16 @@ class ForkTest extends TestCase
 
     public function testThrowWhenCallableFails()
     {
-        $process = new Fork(new Generic, $fn = static function() {
-            sleep(2);
-            throw new \Exception;
-        });
+        $process = new Fork(
+            new Generic(
+                $this->createMock(TimeContinuumInterface::class),
+                $this->createMock(Halt::class)
+            ),
+            $fn = static function() {
+                sleep(2);
+                throw new \Exception;
+            }
+        );
 
         try {
             $process->wait();
@@ -52,9 +66,15 @@ class ForkTest extends TestCase
 
     public function testKill()
     {
-        $process = new Fork(new Generic, static function() {
-            sleep(10);
-        });
+        $process = new Fork(
+            new Generic(
+                $this->createMock(TimeContinuumInterface::class),
+                $this->createMock(Halt::class)
+            ),
+            static function() {
+                sleep(10);
+            }
+        );
 
         $this->assertNull($process->kill());
     }

@@ -12,6 +12,7 @@ use Innmind\OperatingSystem\{
     CurrentProcess,
     Exception\ForkFailed,
 };
+use Innmind\Signals\Signal;
 
 final class Fork implements Process
 {
@@ -26,7 +27,7 @@ final class Fork implements Process
 
             if (!$side->parent()) {
                 try {
-                    $this->registerSignalHandlers();
+                    $this->registerSignalHandlers($process);
 
                     $callable();
                     exit(0);
@@ -71,16 +72,15 @@ final class Fork implements Process
         return $this->child->id()->toInt();
     }
 
-    private function registerSignalHandlers(): void
+    private function registerSignalHandlers(CurrentProcess $process): void
     {
-        pcntl_async_signals(true);
-        $exit = function(int $signal): void {
+        $exit = function(): void {
             exit(1);
         };
 
-        pcntl_signal(SIGHUP, $exit);
-        pcntl_signal(SIGINT, $exit);
-        pcntl_signal(SIGABRT, $exit);
-        pcntl_signal(SIGTERM, $exit);
+        $process->signals()->listen(Signal::hangup(), $exit);
+        $process->signals()->listen(Signal::interrupt(), $exit);
+        $process->signals()->listen(Signal::abort(), $exit);
+        $process->signals()->listen(Signal::terminate(), $exit);
     }
 }
