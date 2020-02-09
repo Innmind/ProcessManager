@@ -39,9 +39,7 @@ final class SubProcess implements Runner
         $forward = function(Signal $signal): void {
             $this
                 ->processes
-                ->filter(static function(Fork $process): bool {
-                    return $process->running();
-                })
+                ->filter(static fn(Fork $process): bool => $process->running())
                 ->foreach(static function(Fork $process) use ($signal): void {
                     \posix_kill($process->pid(), $signal->toInt());
                 });

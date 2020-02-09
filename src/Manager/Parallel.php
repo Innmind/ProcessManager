@@ -58,9 +58,7 @@ final class Parallel implements Manager
     {
         $this
             ->processes
-            ->filter(static function(Process $process): bool {
-                return $process->running();
-            })
+            ->filter(static fn(Process $process): bool => $process->running())
             ->foreach(static function(Process $process): void {
                 $process->kill();
             });

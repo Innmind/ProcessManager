@@ -67,7 +67,7 @@ final class Pool implements Manager
 
     public function wait(): void
     {
-        if (is_null($this->buffer)) {
+        if (\is_null($this->buffer)) {
             return; //do not wait if not even started
         }
 
@@ -78,9 +78,9 @@ final class Pool implements Manager
                 $this->processes,
                 function(Sequence $carry, callable $callable): Sequence {
                     return ($carry)(
-                        ($this->buffer)($callable)
+                        ($this->buffer)($callable),
                     );
-                }
+                },
             )
             ->foreach(static function(Process $process): void {
                 $process->wait();
@@ -91,9 +91,7 @@ final class Pool implements Manager
     {
         $this
             ->processes
-            ->filter(static function(Process $process): bool {
-                return $process->running();
-            })
+            ->filter(static fn(Process $process): bool => $process->running())
             ->foreach(static function(Process $process): void {
                 $process->kill();
             });

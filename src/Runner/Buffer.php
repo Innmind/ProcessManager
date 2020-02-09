@@ -57,10 +57,10 @@ final class Buffer implements Runner
      */
     private function entangle(callable $callable): array
     {
-        [$parent, $child] = stream_socket_pair(
-            STREAM_PF_UNIX,
-            STREAM_SOCK_STREAM,
-            STREAM_IPPROTO_IP
+        [$parent, $child] = \stream_socket_pair(
+            \STREAM_PF_UNIX,
+            \STREAM_SOCK_STREAM,
+            \STREAM_IPPROTO_IP,
         );
         $parent = new Bidirectional($parent);
         $child = new Bidirectional($child);
@@ -87,7 +87,7 @@ final class Buffer implements Runner
             $this->sockets->watch(new ElapsedPeriod(1000)), //1 second timeout
             static function(Watch $watch, Selectable $stream): Watch {
                 return $watch->forRead($stream);
-            }
+            },
         );
 
         do {
@@ -107,7 +107,7 @@ final class Buffer implements Runner
                 $this->running,
                 function(Map $carry, Selectable $stream): Map {
                     return $carry->remove($stream);
-                }
+                },
             );
     }
 }
