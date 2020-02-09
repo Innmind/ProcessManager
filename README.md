@@ -23,20 +23,21 @@ use Innmind\OperatingSystem\Factory;
 use Innmind\Immutable\Sequence;
 use GuzzleHttp\Client;
 
-$urls = new Sequence(
+$urls = Sequence::strings(
     'http://google.com',
     'http://github.com',
     'http://wikipedia.org'
 );
 $http = new Client;
-$runner = new SubProcess(Factory::buid()->process());
+$os = Factory::buid();
+$runner = new SubProcess($os->process());
 $crawl = $urls->reduce(
     new Parallel($runner),
     static function(Parallel $parallel, string $url) use ($http): Parallel {
         return $parallel->schedule(static function() use ($http, $url): void {
-            file_put_contents(
+            \file_put_contents(
                 '/tmp/'.md5($url),
-                (string) $http->get($url)->getBody()
+                (string) $http->get($url)->getBody(),
             );
         });
     }
@@ -63,7 +64,7 @@ Example:
 ```php
 use Innmind\ProcessManager\Manager\Pool;
 
-$pool = (new Pool(2, $runner))
+$pool = (new Pool(2, $runner, $os->sockets()))
     ->schedule(function() {
         sleep(10);
     })
