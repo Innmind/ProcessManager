@@ -10,31 +10,39 @@ use Innmind\ProcessManager\{
     Runner\Buffer,
     Exception\DomainException,
 };
-use Innmind\Immutable\Stream;
+use Innmind\OperatingSystem\Sockets;
+use Innmind\Immutable\Sequence;
 
 final class Pool implements Manager
 {
-    private $run;
-    private $buffer;
-    private $scheduled;
-    private $processes;
+    private int $size;
+    private Runner $run;
+    private Sockets $sockets;
+    private ?Buffer $buffer = null;
+    /** @var Sequence<callable> */
+    private Sequence $scheduled;
+    /** @var Sequence<Process> */
+    private Sequence $processes;
 
-    public function __construct(int $size, Runner $run)
+    public function __construct(int $size, Runner $run, Sockets $sockets)
     {
         if ($size < 1) {
-            throw new DomainException;
+            throw new DomainException((string) $size);
         }
 
         $this->size = $size;
         $this->run = $run;
-        $this->scheduled = new Stream('callable');
-        $this->processes = new Stream(Process::class);
+        $this->sockets = $sockets;
+        /** @var Sequence<callable> */
+        $this->scheduled = Sequence::of('callable');
+        /** @var Sequence<Process> */
+        $this->processes = Sequence::of(Process::class);
     }
 
     public function schedule(callable $callable): Manager
     {
         $self = clone $this;
-        $self->scheduled = $self->scheduled->add($callable);
+        $self->scheduled = ($self->scheduled)($callable);
         $self->processes = $self->processes->clear();
         $self->buffer = null;
 
@@ -43,18 +51,15 @@ final class Pool implements Manager
 
     public function __invoke(): Manager
     {
+        $buffer = new Buffer($this->size, $this->run, $this->sockets);
         $self = clone $this;
-        $self->buffer = new Buffer($this->size, $this->run);
+        $self->buffer = $buffer;
         $self->processes = $self
             ->scheduled
             ->take($self->size)
-            ->reduce(
-                $self->processes->clear(),
-                static function(Stream $carry, callable $callable) use ($self): Stream {
-                    return $carry->add(
-                        ($self->buffer)($callable)
-                    );
-                }
+            ->mapTo(
+                Process::class,
+                static fn(callable $callable): Process => $buffer($callable),
             );
 
         return $self;
@@ -62,7 +67,7 @@ final class Pool implements Manager
 
     public function wait(): void
     {
-        if (is_null($this->buffer)) {
+        if (\is_null($this->buffer)) {
             return; //do not wait if not even started
         }
 
@@ -71,11 +76,11 @@ final class Pool implements Manager
             ->drop($this->size)
             ->reduce(
                 $this->processes,
-                function(Stream $carry, callable $callable): Stream {
-                    return $carry->add(
-                        ($this->buffer)($callable)
+                function(Sequence $carry, callable $callable): Sequence {
+                    return ($carry)(
+                        ($this->buffer)($callable),
                     );
-                }
+                },
             )
             ->foreach(static function(Process $process): void {
                 $process->wait();
@@ -86,9 +91,7 @@ final class Pool implements Manager
     {
         $this
             ->processes
-            ->filter(static function(Process $process): bool {
-                return $process->running();
-            })
+            ->filter(static fn(Process $process): bool => $process->running())
             ->foreach(static function(Process $process): void {
                 $process->kill();
             });

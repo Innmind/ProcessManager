@@ -7,7 +7,7 @@ use Innmind\ProcessManager\Manager;
 
 final class KillOnError implements Manager
 {
-    private $manager;
+    private Manager $manager;
 
     public function __construct(Manager $manager)
     {

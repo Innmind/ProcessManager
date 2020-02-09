@@ -5,7 +5,7 @@ namespace Innmind\ProcessManager\Runner;
 
 use Innmind\ProcessManager\{
     Runner,
-    Process
+    Process,
 };
 
 final class SameProcess implements Runner

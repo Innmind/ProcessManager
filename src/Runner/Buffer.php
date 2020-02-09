@@ -6,34 +6,39 @@ namespace Innmind\ProcessManager\Runner;
 use Innmind\ProcessManager\{
     Runner,
     Process,
-    Exception\DomainException
+    Exception\DomainException,
 };
+use Innmind\OperatingSystem\Sockets;
 use Innmind\Stream\{
     Stream\Bidirectional,
     Selectable,
-    Select
+    Watch,
 };
-use Innmind\TimeContinuum\ElapsedPeriod;
+use Innmind\TimeContinuum\Earth\ElapsedPeriod;
 use Innmind\Immutable\{
     Map,
-    Str
+    Str,
 };
 
 final class Buffer implements Runner
 {
-    private $size;
-    private $run;
-    private $running;
+    private int $size;
+    private Runner $run;
+    private Sockets $sockets;
+    /** @var Map<Selectable, Process> */
+    private Map $running;
 
-    public function __construct(int $size, Runner $runner)
+    public function __construct(int $size, Runner $runner, Sockets $sockets)
     {
         if ($size < 1) {
-            throw new DomainException;
+            throw new DomainException((string) $size);
         }
 
         $this->size = $size;
         $this->run = $runner;
-        $this->running = new Map(Selectable::class, Process::class);
+        $this->sockets = $sockets;
+        /** @var Map<Selectable, Process> */
+        $this->running = Map::of(Selectable::class, Process::class);
     }
 
     public function __invoke(callable $callable): Process
@@ -42,17 +47,20 @@ final class Buffer implements Runner
 
         [$callable, $beacon] = $this->entangle($callable);
         $process = ($this->run)($callable);
-        $this->running = $this->running->put($beacon, $process);
+        $this->running = ($this->running)($beacon, $process);
 
         return $process;
     }
 
+    /**
+     * @return array{0: callable, 1: Bidirectional}
+     */
     private function entangle(callable $callable): array
     {
-        [$parent, $child] = stream_socket_pair(
-            STREAM_PF_UNIX,
-            STREAM_SOCK_STREAM,
-            STREAM_IPPROTO_IP
+        [$parent, $child] = \stream_socket_pair(
+            \STREAM_PF_UNIX,
+            \STREAM_SOCK_STREAM,
+            \STREAM_IPPROTO_IP,
         );
         $parent = new Bidirectional($parent);
         $child = new Bidirectional($child);
@@ -61,9 +69,8 @@ final class Buffer implements Runner
             try {
                 $callable();
             } finally {
-                $child
-                    ->write(new Str('terminating'))
-                    ->close();
+                $child->write(Str::of('terminating'));
+                $child->close();
             }
         };
 
@@ -76,28 +83,31 @@ final class Buffer implements Runner
             return;
         }
 
-        $select = $this->running->reduce(
-            new Select(new ElapsedPeriod(1000)), //1 second timeout
-            static function(Select $select, Selectable $stream): Select {
-                return $select->forRead($stream);
-            }
+        $watch = $this->running->reduce(
+            $this->sockets->watch(new ElapsedPeriod(1000)), //1 second timeout
+            static function(Watch $watch, Selectable $stream): Watch {
+                return $watch->forRead($stream);
+            },
         );
 
         do {
-            $streams = $select();
-        } while ($streams->get('read')->size() === 0);
+            $ready = $watch();
+        } while ($ready->toRead()->empty());
 
-        $this->running = $streams
-            ->get('read')
+        $ready
+            ->toRead()
             ->foreach(function(Selectable $stream): void {
                 //truly wait the process to finish, as the stream is just a signal
                 $this->running->get($stream)->wait();
-            })
+            });
+        /** @var Map<Selectable, Process> */
+        $this->running = $ready
+            ->toRead()
             ->reduce(
                 $this->running,
                 function(Map $carry, Selectable $stream): Map {
                     return $carry->remove($stream);
-                }
+                },
             );
     }
 }

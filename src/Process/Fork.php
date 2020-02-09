@@ -6,22 +6,23 @@ namespace Innmind\ProcessManager\Process;
 use Innmind\ProcessManager\{
     Process,
     Exception\CouldNotFork,
-    Exception\SubProcessFailed
+    Exception\SubProcessFailed,
 };
 use Innmind\OperatingSystem\{
     CurrentProcess,
+    CurrentProcess\Child,
     Exception\ForkFailed,
 };
 use Innmind\Signals\Signal;
 
 final class Fork implements Process
 {
-    private $callable;
-    private $child;
+    private \Closure $callable;
+    private Child $child;
 
     public function __construct(CurrentProcess $process, callable $callable)
     {
-        $this->callable = $callable;
+        $this->callable = \Closure::fromCallable($callable);
         try {
             $side = $process->fork();
 
@@ -57,14 +58,14 @@ final class Fork implements Process
         if ($exitCode->toInt() !== 0) {
             throw new SubProcessFailed(
                 $this->callable,
-                $exitCode->toInt()
+                $exitCode->toInt(),
             );
         }
     }
 
     public function kill(): void
     {
-        $this->child->terminate();
+        $this->child->kill();
     }
 
     public function pid(): int

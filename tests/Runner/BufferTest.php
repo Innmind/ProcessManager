@@ -10,8 +10,15 @@ use Innmind\ProcessManager\{
     Process\Fork,
     Exception\DomainException,
 };
-use Innmind\OperatingSystem\CurrentProcess\Generic;
-use Innmind\TimeContinuum\TimeContinuumInterface;
+use Innmind\OperatingSystem\{
+    CurrentProcess\Generic,
+    Sockets,
+};
+use Innmind\Stream\Watch\Select;
+use Innmind\TimeContinuum\{
+    Clock,
+    Earth\ElapsedPeriod,
+};
 use Innmind\TimeWarp\Halt;
 use PHPUnit\Framework\TestCase;
 
@@ -23,7 +30,8 @@ class BufferTest extends TestCase
             Runner::class,
             new Buffer(
                 1,
-                $this->createMock(Runner::class)
+                $this->createMock(Runner::class),
+                $this->createMock(Sockets::class),
             )
         );
     }
@@ -34,16 +42,17 @@ class BufferTest extends TestCase
 
         new Buffer(
             0,
-            $this->createMock(Runner::class)
+            $this->createMock(Runner::class),
+            $this->createMock(Sockets::class),
         );
     }
 
     public function testInvokeDirectly()
     {
         $buffer = new Buffer(1, new SubProcess(new Generic(
-            $this->createMock(TimeContinuumInterface::class),
-            $this->createMock(Halt::class)
-        )));
+            $this->createMock(Clock::class),
+            $this->createMock(Halt::class),
+        )), $this->createMock(Sockets::class));
         $start = time();
 
         $process = $buffer(function(): void {
@@ -51,15 +60,20 @@ class BufferTest extends TestCase
         });
 
         $this->assertInstanceOf(Fork::class, $process);
-        $this->assertTrue(time() - $start < 1);
+        $this->assertLessThanOrEqual(1, time() - $start);
     }
 
     public function testBufferInvokation()
     {
         $buffer = new Buffer(2, new SubProcess(new Generic(
-            $this->createMock(TimeContinuumInterface::class),
-            $this->createMock(Halt::class)
-        )));
+            $this->createMock(Clock::class),
+            $this->createMock(Halt::class),
+        )), $sockets = $this->createMock(Sockets::class));
+        $sockets
+            ->expects($this->once())
+            ->method('watch')
+            ->with(new ElapsedPeriod(1000))
+            ->willReturn(new Select(new ElapsedPeriod(1000)));
         $sleep = function(): void {
             sleep(5);
         };
@@ -70,7 +84,7 @@ class BufferTest extends TestCase
         $process = $buffer($sleep);
 
         $this->assertInstanceOf(Fork::class, $process);
-        $this->assertTrue(time() - $start >= 5);
-        $this->assertTrue(time() - $start < 6);
+        $this->assertGreaterThanOrEqual(5, time() - $start);
+        $this->assertLessThanOrEqual(6, time() - $start);
     }
 }

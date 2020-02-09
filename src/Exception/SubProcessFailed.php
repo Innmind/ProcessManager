@@ -5,8 +5,9 @@ namespace Innmind\ProcessManager\Exception;
 
 class SubProcessFailed extends RuntimeException
 {
+    /** @var callable */
     private $callable;
-    private $exitCode;
+    private int $exitCode;
 
     public function __construct(callable $callable, int $exitCode)
     {

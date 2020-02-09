@@ -18,7 +18,7 @@ class SynchronousTest extends TestCase
             sleep(1);
         });
 
-        $this->assertTrue((time() - $start) >= 1);
+        $this->assertGreaterThanOrEqual(1, time() - $start);
         $this->assertInstanceOf(Process::class, $process);
         $this->assertFalse($process->running());
         $this->assertNull($process->wait());

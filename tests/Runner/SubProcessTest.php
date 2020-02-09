@@ -9,7 +9,7 @@ use Innmind\ProcessManager\{
     Process\Fork,
 };
 use Innmind\OperatingSystem\CurrentProcess;
-use Innmind\TimeContinuum\TimeContinuumInterface;
+use Innmind\TimeContinuum\Clock;
 use Innmind\TimeWarp\Halt;
 use PHPUnit\Framework\TestCase;
 
@@ -26,7 +26,7 @@ class SubProcessTest extends TestCase
     public function testInvokation()
     {
         $run = new SubProcess(new CurrentProcess\Generic(
-            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Clock::class),
             $this->createMock(Halt::class)
         ));
 

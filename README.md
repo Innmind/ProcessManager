@@ -1,10 +1,8 @@
 # ProcessManager
 
-| `master` | `develop` |
-|----------|-----------|
-| [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/Innmind/ProcessManager/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/Innmind/ProcessManager/?branch=master) | [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/Innmind/ProcessManager/badges/quality-score.png?b=develop)](https://scrutinizer-ci.com/g/Innmind/ProcessManager/?branch=develop) |
-| [![Code Coverage](https://scrutinizer-ci.com/g/Innmind/ProcessManager/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/Innmind/ProcessManager/?branch=master) | [![Code Coverage](https://scrutinizer-ci.com/g/Innmind/ProcessManager/badges/coverage.png?b=develop)](https://scrutinizer-ci.com/g/Innmind/ProcessManager/?branch=develop) |
-| [![Build Status](https://scrutinizer-ci.com/g/Innmind/ProcessManager/badges/build.png?b=master)](https://scrutinizer-ci.com/g/Innmind/ProcessManager/build-status/master) | [![Build Status](https://scrutinizer-ci.com/g/Innmind/ProcessManager/badges/build.png?b=develop)](https://scrutinizer-ci.com/g/Innmind/ProcessManager/build-status/develop) |
+[![Build Status](https://github.com/Innmind/ProcessManager/workflows/CI/badge.svg)](https://github.com/Innmind/ProcessManager/actions?query=workflow%3ACI)
+[![codecov](https://codecov.io/gh/Innmind/ProcessManager/branch/develop/graph/badge.svg)](https://codecov.io/gh/Innmind/ProcessManager)
+[![Type Coverage](https://shepherd.dev/github/Innmind/ProcessManager/coverage.svg)](https://shepherd.dev/github/Innmind/ProcessManager)
 
 Simple library to execute code in parallel thanks to `pcntl_fork`.
 
@@ -25,20 +23,21 @@ use Innmind\OperatingSystem\Factory;
 use Innmind\Immutable\Sequence;
 use GuzzleHttp\Client;
 
-$urls = new Sequence(
+$urls = Sequence::strings(
     'http://google.com',
     'http://github.com',
     'http://wikipedia.org'
 );
 $http = new Client;
-$runner = new SubProcess(Factory::buid()->process());
+$os = Factory::buid();
+$runner = new SubProcess($os->process());
 $crawl = $urls->reduce(
     new Parallel($runner),
     static function(Parallel $parallel, string $url) use ($http): Parallel {
         return $parallel->schedule(static function() use ($http, $url): void {
-            file_put_contents(
+            \file_put_contents(
                 '/tmp/'.md5($url),
-                (string) $http->get($url)->getBody()
+                (string) $http->get($url)->getBody(),
             );
         });
     }
@@ -65,7 +64,7 @@ Example:
 ```php
 use Innmind\ProcessManager\Manager\Pool;
 
-$pool = (new Pool(2, $runner))
+$pool = (new Pool(2, $runner, $os->sockets()))
     ->schedule(function() {
         sleep(10);
     })

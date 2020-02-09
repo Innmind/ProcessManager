@@ -14,20 +14,22 @@ use Innmind\Immutable\Set;
 
 final class SubProcess implements Runner
 {
-    private $process;
-    private $processes;
+    private CurrentProcess $process;
+    /** @var Set<Fork> */
+    private Set $processes;
 
     public function __construct(CurrentProcess $process)
     {
         $this->process = $process;
-        $this->processes = new Set(Fork::class);
+        /** @var Set<Fork> */
+        $this->processes = Set::of(Fork::class);
         $this->registerSignalHandlers($process);
     }
 
     public function __invoke(callable $callable): Process
     {
         $process = new Fork($this->process, $callable);
-        $this->processes = $this->processes->add($process);
+        $this->processes = ($this->processes)($process);
 
         return $process;
     }
@@ -37,9 +39,7 @@ final class SubProcess implements Runner
         $forward = function(Signal $signal): void {
             $this
                 ->processes
-                ->filter(static function(Fork $process): bool {
-                    return $process->running();
-                })
+                ->filter(static fn(Fork $process): bool => $process->running())
                 ->foreach(static function(Fork $process) use ($signal): void {
                     \posix_kill($process->pid(), $signal->toInt());
                 });

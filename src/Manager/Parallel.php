@@ -8,25 +8,29 @@ use Innmind\ProcessManager\{
     Runner,
     Process,
 };
-use Innmind\Immutable\Stream;
+use Innmind\Immutable\Sequence;
 
 final class Parallel implements Manager
 {
-    private $run;
-    private $scheduled;
-    private $processes;
+    private Runner $run;
+    /** @var Sequence<callable> */
+    private Sequence $scheduled;
+    /** @var Sequence<Process> */
+    private Sequence $processes;
 
     public function __construct(Runner $run)
     {
         $this->run = $run;
-        $this->scheduled = new Stream('callable');
-        $this->processes = new Stream(Process::class);
+        /** @var Sequence<callable> */
+        $this->scheduled = Sequence::of('callable');
+        /** @var Sequence<Process> */
+        $this->processes = Sequence::of(Process::class);
     }
 
     public function schedule(callable $callable): Manager
     {
         $self = clone $this;
-        $self->scheduled = $self->scheduled->add($callable);
+        $self->scheduled = ($self->scheduled)($callable);
         $self->processes = $self->processes->clear();
 
         return $self;
@@ -35,16 +39,10 @@ final class Parallel implements Manager
     public function __invoke(): Manager
     {
         $self = clone $this;
-        $self->processes = $this
-            ->scheduled
-            ->reduce(
-                $self->processes->clear(),
-                function(Stream $carry, callable $callable): Stream {
-                    return $carry->add(
-                        ($this->run)($callable)
-                    );
-                }
-            );
+        $self->processes = $this->scheduled->mapTo(
+            Process::class,
+            fn(callable $callable): Process => ($this->run)($callable),
+        );
 
         return $self;
     }
@@ -60,9 +58,7 @@ final class Parallel implements Manager
     {
         $this
             ->processes
-            ->filter(static function(Process $process): bool {
-                return $process->running();
-            })
+            ->filter(static fn(Process $process): bool => $process->running())
             ->foreach(static function(Process $process): void {
                 $process->kill();
             });
