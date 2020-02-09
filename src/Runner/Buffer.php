@@ -31,7 +31,7 @@ final class Buffer implements Runner
     public function __construct(int $size, Runner $runner, Sockets $sockets)
     {
         if ($size < 1) {
-            throw new DomainException;
+            throw new DomainException((string) $size);
         }
 
         $this->size = $size;

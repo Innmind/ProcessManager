@@ -27,7 +27,7 @@ final class Pool implements Manager
     public function __construct(int $size, Runner $run, Sockets $sockets)
     {
         if ($size < 1) {
-            throw new DomainException;
+            throw new DomainException((string) $size);
         }
 
         $this->size = $size;
