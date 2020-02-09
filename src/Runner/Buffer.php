@@ -8,6 +8,7 @@ use Innmind\ProcessManager\{
     Process,
     Exception\DomainException,
 };
+use Innmind\OperatingSystem\Sockets;
 use Innmind\Stream\{
     Stream\Bidirectional,
     Selectable,
@@ -23,9 +24,10 @@ final class Buffer implements Runner
 {
     private int $size;
     private Runner $run;
+    private Sockets $sockets;
     private Map $running;
 
-    public function __construct(int $size, Runner $runner)
+    public function __construct(int $size, Runner $runner, Sockets $sockets)
     {
         if ($size < 1) {
             throw new DomainException;
@@ -33,6 +35,7 @@ final class Buffer implements Runner
 
         $this->size = $size;
         $this->run = $runner;
+        $this->sockets = $sockets;
         $this->running = Map::of(Selectable::class, Process::class);
     }
 
@@ -76,7 +79,7 @@ final class Buffer implements Runner
         }
 
         $select = $this->running->reduce(
-            new Select(new ElapsedPeriod(1000)), //1 second timeout
+            $this->sockets->watch(new ElapsedPeriod(1000)), //1 second timeout
             static function(Select $select, Selectable $stream): Select {
                 return $select->forRead($stream);
             }

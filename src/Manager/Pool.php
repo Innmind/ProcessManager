@@ -10,17 +10,19 @@ use Innmind\ProcessManager\{
     Runner\Buffer,
     Exception\DomainException,
 };
+use Innmind\OperatingSystem\Sockets;
 use Innmind\Immutable\Sequence;
 
 final class Pool implements Manager
 {
     private int $size;
     private Runner $run;
+    private Sockets $sockets;
     private ?Buffer $buffer = null;
     private Sequence $scheduled;
     private Sequence $processes;
 
-    public function __construct(int $size, Runner $run)
+    public function __construct(int $size, Runner $run, Sockets $sockets)
     {
         if ($size < 1) {
             throw new DomainException;
@@ -28,6 +30,7 @@ final class Pool implements Manager
 
         $this->size = $size;
         $this->run = $run;
+        $this->sockets = $sockets;
         $this->scheduled = Sequence::of('callable');
         $this->processes = Sequence::of(Process::class);
     }
@@ -45,7 +48,7 @@ final class Pool implements Manager
     public function __invoke(): Manager
     {
         $self = clone $this;
-        $self->buffer = new Buffer($this->size, $this->run);
+        $self->buffer = new Buffer($this->size, $this->run, $this->sockets);
         $self->processes = $self
             ->scheduled
             ->take($self->size)
