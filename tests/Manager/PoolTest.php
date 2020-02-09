@@ -289,17 +289,11 @@ class PoolTest extends TestCase
 
     public function testRealKill()
     {
-        $sockets = $this->createMock(Sockets::class);
-        $sockets
-            ->expects($this->once())
-            ->method('watch')
-            ->with(new ElapsedPeriod(1000))
-            ->willReturn(new Select(new ElapsedPeriod(1000)));
         $start = time();
         $parallel = (new Pool(2, new SubProcess(new Generic(
             $this->createMock(Clock::class),
             $this->createMock(Halt::class)
-        )), $sockets))
+        )), new Sockets\Unix))
             ->schedule(function(){
                 sleep(10);
             })
