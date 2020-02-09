@@ -65,7 +65,7 @@ final class Fork implements Process
 
     public function kill(): void
     {
-        $this->child->terminate();
+        $this->child->kill();
     }
 
     public function pid(): int
