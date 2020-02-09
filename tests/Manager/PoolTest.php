@@ -14,7 +14,7 @@ use Innmind\ProcessManager\{
     Exception\SubProcessFailed,
 };
 use Innmind\OperatingSystem\CurrentProcess\Generic;
-use Innmind\TimeContinuum\TimeContinuumInterface;
+use Innmind\TimeContinuum\Clock;
 use Innmind\TimeWarp\Halt;
 use PHPUnit\Framework\TestCase;
 
@@ -84,7 +84,7 @@ class PoolTest extends TestCase
     {
         $start = time();
         (new Pool(2, new SubProcess(new Generic(
-            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Clock::class),
             $this->createMock(Halt::class)
         ))))
             ->schedule(static function() {
@@ -110,7 +110,7 @@ class PoolTest extends TestCase
     {
         $start = time();
         (new Pool($size, new SubProcess(new Generic(
-            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Clock::class),
             $this->createMock(Halt::class)
         ))))
             ->schedule(static function() {
@@ -142,7 +142,7 @@ class PoolTest extends TestCase
     {
         $start = time();
         (new Pool(20, new SubProcess(new Generic(
-            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Clock::class),
             $this->createMock(Halt::class)
         ))))
             ->schedule(static function() {
@@ -164,7 +164,7 @@ class PoolTest extends TestCase
     public function testDoesntWaitWhenNotInvoked()
     {
         $pool = new Pool(3, new SubProcess(new Generic(
-            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Clock::class),
             $this->createMock(Halt::class)
         )));
         $pool = $pool->schedule(static function() {
@@ -183,7 +183,7 @@ class PoolTest extends TestCase
         try {
             $start = time();
             (new Pool(2, new SubProcess(new Generic(
-                $this->createMock(TimeContinuumInterface::class),
+                $this->createMock(Clock::class),
                 $this->createMock(Halt::class)
             ))))
                 ->schedule(static function() {
@@ -241,7 +241,7 @@ class PoolTest extends TestCase
     {
         $start = time();
         $parallel = (new Pool(2, new SubProcess(new Generic(
-            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Clock::class),
             $this->createMock(Halt::class)
         ))))
             ->schedule(function(){

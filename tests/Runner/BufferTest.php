@@ -11,7 +11,7 @@ use Innmind\ProcessManager\{
     Exception\DomainException,
 };
 use Innmind\OperatingSystem\CurrentProcess\Generic;
-use Innmind\TimeContinuum\TimeContinuumInterface;
+use Innmind\TimeContinuum\Clock;
 use Innmind\TimeWarp\Halt;
 use PHPUnit\Framework\TestCase;
 
@@ -41,7 +41,7 @@ class BufferTest extends TestCase
     public function testInvokeDirectly()
     {
         $buffer = new Buffer(1, new SubProcess(new Generic(
-            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Clock::class),
             $this->createMock(Halt::class)
         )));
         $start = time();
@@ -57,7 +57,7 @@ class BufferTest extends TestCase
     public function testBufferInvokation()
     {
         $buffer = new Buffer(2, new SubProcess(new Generic(
-            $this->createMock(TimeContinuumInterface::class),
+            $this->createMock(Clock::class),
             $this->createMock(Halt::class)
         )));
         $sleep = function(): void {

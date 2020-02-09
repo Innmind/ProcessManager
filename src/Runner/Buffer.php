@@ -6,17 +6,17 @@ namespace Innmind\ProcessManager\Runner;
 use Innmind\ProcessManager\{
     Runner,
     Process,
-    Exception\DomainException
+    Exception\DomainException,
 };
 use Innmind\Stream\{
     Stream\Bidirectional,
     Selectable,
-    Select
+    Watch\Select,
 };
-use Innmind\TimeContinuum\ElapsedPeriod;
+use Innmind\TimeContinuum\Earth\ElapsedPeriod;
 use Innmind\Immutable\{
     Map,
-    Str
+    Str,
 };
 
 final class Buffer implements Runner
@@ -33,7 +33,7 @@ final class Buffer implements Runner
 
         $this->size = $size;
         $this->run = $runner;
-        $this->running = new Map(Selectable::class, Process::class);
+        $this->running = Map::of(Selectable::class, Process::class);
     }
 
     public function __invoke(callable $callable): Process
@@ -42,7 +42,7 @@ final class Buffer implements Runner
 
         [$callable, $beacon] = $this->entangle($callable);
         $process = ($this->run)($callable);
-        $this->running = $this->running->put($beacon, $process);
+        $this->running = ($this->running)($beacon, $process);
 
         return $process;
     }
@@ -61,9 +61,8 @@ final class Buffer implements Runner
             try {
                 $callable();
             } finally {
-                $child
-                    ->write(new Str('terminating'))
-                    ->close();
+                $child->write(Str::of('terminating'));
+                $child->close();
             }
         };
 
@@ -84,15 +83,17 @@ final class Buffer implements Runner
         );
 
         do {
-            $streams = $select();
-        } while ($streams->get('read')->size() === 0);
+            $ready = $select();
+        } while ($ready->toRead()->empty());
 
-        $this->running = $streams
-            ->get('read')
+        $ready
+            ->toRead()
             ->foreach(function(Selectable $stream): void {
                 //truly wait the process to finish, as the stream is just a signal
                 $this->running->get($stream)->wait();
-            })
+            });
+        $this->running = $ready
+            ->toRead()
             ->reduce(
                 $this->running,
                 function(Map $carry, Selectable $stream): Map {

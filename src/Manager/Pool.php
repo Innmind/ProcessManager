@@ -10,15 +10,15 @@ use Innmind\ProcessManager\{
     Runner\Buffer,
     Exception\DomainException,
 };
-use Innmind\Immutable\Stream;
+use Innmind\Immutable\Sequence;
 
 final class Pool implements Manager
 {
     private int $size;
     private Runner $run;
     private ?Buffer $buffer = null;
-    private Stream $scheduled;
-    private Stream $processes;
+    private Sequence $scheduled;
+    private Sequence $processes;
 
     public function __construct(int $size, Runner $run)
     {
@@ -28,14 +28,14 @@ final class Pool implements Manager
 
         $this->size = $size;
         $this->run = $run;
-        $this->scheduled = new Stream('callable');
-        $this->processes = new Stream(Process::class);
+        $this->scheduled = Sequence::of('callable');
+        $this->processes = Sequence::of(Process::class);
     }
 
     public function schedule(callable $callable): Manager
     {
         $self = clone $this;
-        $self->scheduled = $self->scheduled->add($callable);
+        $self->scheduled = ($self->scheduled)($callable);
         $self->processes = $self->processes->clear();
         $self->buffer = null;
 
@@ -49,13 +49,9 @@ final class Pool implements Manager
         $self->processes = $self
             ->scheduled
             ->take($self->size)
-            ->reduce(
-                $self->processes->clear(),
-                static function(Stream $carry, callable $callable) use ($self): Stream {
-                    return $carry->add(
-                        ($self->buffer)($callable)
-                    );
-                }
+            ->mapTo(
+                Process::class,
+                static fn(callable $callable): Process => ($self->buffer)($callable),
             );
 
         return $self;
@@ -72,8 +68,8 @@ final class Pool implements Manager
             ->drop($this->size)
             ->reduce(
                 $this->processes,
-                function(Stream $carry, callable $callable): Stream {
-                    return $carry->add(
+                function(Sequence $carry, callable $callable): Sequence {
+                    return ($carry)(
                         ($this->buffer)($callable)
                     );
                 }

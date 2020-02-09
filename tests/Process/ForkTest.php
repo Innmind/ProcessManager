@@ -14,7 +14,7 @@ use Innmind\OperatingSystem\{
     CurrentProcess,
     Exception\ForkFailed,
 };
-use Innmind\TimeContinuum\TimeContinuumInterface;
+use Innmind\TimeContinuum\Clock;
 use Innmind\TimeWarp\Halt;
 use PHPUnit\Framework\TestCase;
 
@@ -25,7 +25,7 @@ class ForkTest extends TestCase
         $start = time();
         $process = new Fork(
             new Generic(
-                $this->createMock(TimeContinuumInterface::class),
+                $this->createMock(Clock::class),
                 $this->createMock(Halt::class)
             ),
             static function() {
@@ -46,7 +46,7 @@ class ForkTest extends TestCase
     {
         $process = new Fork(
             new Generic(
-                $this->createMock(TimeContinuumInterface::class),
+                $this->createMock(Clock::class),
                 $this->createMock(Halt::class)
             ),
             $fn = static function() {
@@ -68,7 +68,7 @@ class ForkTest extends TestCase
     {
         $process = new Fork(
             new Generic(
-                $this->createMock(TimeContinuumInterface::class),
+                $this->createMock(Clock::class),
                 $this->createMock(Halt::class)
             ),
             static function() {

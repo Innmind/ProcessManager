@@ -6,7 +6,7 @@ namespace Innmind\ProcessManager\Process;
 use Innmind\ProcessManager\{
     Process,
     Exception\CouldNotFork,
-    Exception\SubProcessFailed
+    Exception\SubProcessFailed,
 };
 use Innmind\OperatingSystem\{
     CurrentProcess,
@@ -58,7 +58,7 @@ final class Fork implements Process
         if ($exitCode->toInt() !== 0) {
             throw new SubProcessFailed(
                 $this->callable,
-                $exitCode->toInt()
+                $exitCode->toInt(),
             );
         }
     }

@@ -20,14 +20,14 @@ final class SubProcess implements Runner
     public function __construct(CurrentProcess $process)
     {
         $this->process = $process;
-        $this->processes = new Set(Fork::class);
+        $this->processes = Set::of(Fork::class);
         $this->registerSignalHandlers($process);
     }
 
     public function __invoke(callable $callable): Process
     {
         $process = new Fork($this->process, $callable);
-        $this->processes = $this->processes->add($process);
+        $this->processes = ($this->processes)($process);
 
         return $process;
     }
