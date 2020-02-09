@@ -91,7 +91,7 @@ class ParallelTest extends TestCase
         $delta = time() - $start;
 
         $this->assertTrue($delta >= 10);
-        $this->assertTrue($delta < 11);
+        $this->assertTrue($delta < 12);
     }
 
     public function testDoesntWaitWhenNotInvoked()
