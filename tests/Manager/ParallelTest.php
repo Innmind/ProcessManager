@@ -66,11 +66,11 @@ class ParallelTest extends TestCase
             sleep(1);
         });
 
-        $this->assertTrue((time() - $start) < 2);
+        $this->assertLessThan(2, time() - $start);
 
         $parallel = $parallel();
 
-        $this->assertTrue((time() - $start) >= 2);
+        $this->assertGreaterThanOrEqual(2, time() - $start);
         $this->assertNull($parallel->wait());
     }
 
@@ -90,8 +90,8 @@ class ParallelTest extends TestCase
             ->wait();
         $delta = time() - $start;
 
-        $this->assertTrue($delta >= 10);
-        $this->assertTrue($delta < 12);
+        $this->assertGreaterThanOrEqual(10, $delta);
+        $this->assertLessThan(12, $delta);
     }
 
     public function testDoesntWaitWhenNotInvoked()
@@ -106,7 +106,7 @@ class ParallelTest extends TestCase
 
         $start = time();
         $this->assertNull($parallel->wait());
-        $this->assertTrue((time() - $start) < 1);
+        $this->assertLessThan(1, time() - $start);
     }
 
     public function testThrowWhenSubProcessFailed()
@@ -133,8 +133,8 @@ class ParallelTest extends TestCase
                 })()
                 ->wait();
         } finally {
-            $this->assertTrue(time() - $start >= 5);
-            $this->assertTrue(time() - $start <= 10);
+            $this->assertGreaterThanOrEqual(5, time() - $start);
+            $this->assertLessThanOrEqual(10, time() - $start);
             //it finishes executing the first callable because we wait in the
             //order of the schedules
         }
@@ -191,6 +191,6 @@ class ParallelTest extends TestCase
         } catch (\Throwable $e) {
             //pass
         }
-        $this->assertTrue(time() - $start < 2);
+        $this->assertLessThan(2, time() - $start);
     }
 }

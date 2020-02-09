@@ -60,7 +60,7 @@ class BufferTest extends TestCase
         });
 
         $this->assertInstanceOf(Fork::class, $process);
-        $this->assertTrue(time() - $start < 1);
+        $this->assertLessThan(1, time() - $start);
     }
 
     public function testBufferInvokation()
@@ -84,7 +84,7 @@ class BufferTest extends TestCase
         $process = $buffer($sleep);
 
         $this->assertInstanceOf(Fork::class, $process);
-        $this->assertTrue(time() - $start >= 5);
-        $this->assertTrue(time() - $start < 6);
+        $this->assertGreaterThanOrEqual(5, time() - $start);
+        $this->assertLessThan(6, time() - $start);
     }
 }

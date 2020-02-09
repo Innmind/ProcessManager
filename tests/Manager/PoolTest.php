@@ -106,7 +106,7 @@ class PoolTest extends TestCase
             ->wait();
         $delta = time() - $start;
 
-        $this->assertTrue($delta >= 18);
+        $this->assertGreaterThanOrEqual(18, $delta);
     }
 
     public function testParallelInvokation()
@@ -134,8 +134,8 @@ class PoolTest extends TestCase
             ->wait();
         $delta = time() - $start;
 
-        $this->assertTrue($delta >= 10);
-        $this->assertTrue($delta < 12);
+        $this->assertGreaterThanOrEqual(10, $delta);
+        $this->assertLessThan(12, $delta);
     }
 
     /**
@@ -175,8 +175,8 @@ class PoolTest extends TestCase
             ->wait();
         $delta = time() - $start;
 
-        $this->assertTrue($delta >= $expected);
-        $this->assertTrue($delta < ($expected + 2));
+        $this->assertGreaterThanOrEqual($expected, $delta);
+        $this->assertLessThan($expected + 2, $delta);
     }
 
     public function testInvokationWhenPoolHigherThanScheduled()
@@ -199,8 +199,8 @@ class PoolTest extends TestCase
             ->wait();
         $delta = time() - $start;
 
-        $this->assertTrue($delta >= 10);
-        $this->assertTrue($delta < 12);
+        $this->assertGreaterThanOrEqual(10, $delta);
+        $this->assertLessThan(12, $delta);
     }
 
     public function testDoesntWaitWhenNotInvoked()
@@ -216,7 +216,7 @@ class PoolTest extends TestCase
 
         $start = time();
         $this->assertNull($pool->wait());
-        $this->assertTrue((time() - $start) < 1);
+        $this->assertLessThan(1, time() - $start);
     }
 
     public function testThrowWhenChildFailed()
@@ -249,8 +249,8 @@ class PoolTest extends TestCase
                 })()
                 ->wait();
         } finally {
-            $this->assertTrue(time() - $start >= 5);
-            $this->assertTrue(time() - $start <= 7);
+            $this->assertGreaterThanOrEqual(5, time() - $start);
+            $this->assertLessThanOrEqual(7, time() - $start);
         }
     }
 
@@ -306,7 +306,7 @@ class PoolTest extends TestCase
         } catch (\Throwable $e) {
             //pass
         }
-        $this->assertTrue(time() - $start < 2);
+        $this->assertLessThan(2, time() - $start);
     }
 
     public function sizes(): array

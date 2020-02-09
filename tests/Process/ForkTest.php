@@ -33,13 +33,13 @@ class ForkTest extends TestCase
             }
         );
 
-        $this->assertTrue((time() - $start) < 1);
+        $this->assertLessThan(1, time() - $start);
         $this->assertInstanceOf(Process::class, $process);
         $this->assertTrue(is_int($process->pid()));
         $this->assertTrue($process->pid() > getmypid());
         $this->assertTrue($process->running());
         $this->assertNull($process->wait());
-        $this->assertTrue((time() - $start) >= 2);
+        $this->assertGreaterThanOrEqual(2, time() - $start);
     }
 
     public function testThrowWhenCallableFails()
