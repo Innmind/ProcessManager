@@ -14,10 +14,11 @@ use Innmind\Immutable\Stream;
 
 final class Pool implements Manager
 {
-    private $run;
-    private $buffer;
-    private $scheduled;
-    private $processes;
+    private int $size;
+    private Runner $run;
+    private ?Buffer $buffer = null;
+    private Stream $scheduled;
+    private Stream $processes;
 
     public function __construct(int $size, Runner $run)
     {

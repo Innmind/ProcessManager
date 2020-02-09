@@ -12,9 +12,9 @@ use Innmind\Immutable\Stream;
 
 final class Parallel implements Manager
 {
-    private $run;
-    private $scheduled;
-    private $processes;
+    private Runner $run;
+    private Stream $scheduled;
+    private Stream $processes;
 
     public function __construct(Runner $run)
     {

@@ -14,8 +14,8 @@ use Innmind\Immutable\Set;
 
 final class SubProcess implements Runner
 {
-    private $process;
-    private $processes;
+    private CurrentProcess $process;
+    private Set $processes;
 
     public function __construct(CurrentProcess $process)
     {

@@ -21,9 +21,9 @@ use Innmind\Immutable\{
 
 final class Buffer implements Runner
 {
-    private $size;
-    private $run;
-    private $running;
+    private int $size;
+    private Runner $run;
+    private Map $running;
 
     public function __construct(int $size, Runner $runner)
     {

@@ -10,18 +10,19 @@ use Innmind\ProcessManager\{
 };
 use Innmind\OperatingSystem\{
     CurrentProcess,
+    CurrentProcess\Child,
     Exception\ForkFailed,
 };
 use Innmind\Signals\Signal;
 
 final class Fork implements Process
 {
-    private $callable;
-    private $child;
+    private \Closure $callable;
+    private Child $child;
 
     public function __construct(CurrentProcess $process, callable $callable)
     {
-        $this->callable = $callable;
+        $this->callable = \Closure::fromCallable($callable);
         try {
             $side = $process->fork();
 
