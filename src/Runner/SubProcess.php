@@ -15,11 +15,13 @@ use Innmind\Immutable\Set;
 final class SubProcess implements Runner
 {
     private CurrentProcess $process;
+    /** @var Set<Fork> */
     private Set $processes;
 
     public function __construct(CurrentProcess $process)
     {
         $this->process = $process;
+        /** @var Set<Fork> */
         $this->processes = Set::of(Fork::class);
         $this->registerSignalHandlers($process);
     }

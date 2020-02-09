@@ -12,7 +12,7 @@ use Innmind\OperatingSystem\Sockets;
 use Innmind\Stream\{
     Stream\Bidirectional,
     Selectable,
-    Watch\Select,
+    Watch,
 };
 use Innmind\TimeContinuum\Earth\ElapsedPeriod;
 use Innmind\Immutable\{
@@ -25,6 +25,7 @@ final class Buffer implements Runner
     private int $size;
     private Runner $run;
     private Sockets $sockets;
+    /** @var Map<Selectable, Process> */
     private Map $running;
 
     public function __construct(int $size, Runner $runner, Sockets $sockets)
@@ -36,6 +37,7 @@ final class Buffer implements Runner
         $this->size = $size;
         $this->run = $runner;
         $this->sockets = $sockets;
+        /** @var Map<Selectable, Process> */
         $this->running = Map::of(Selectable::class, Process::class);
     }
 
@@ -50,6 +52,9 @@ final class Buffer implements Runner
         return $process;
     }
 
+    /**
+     * @return array{0: callable, 1: Bidirectional}
+     */
     private function entangle(callable $callable): array
     {
         [$parent, $child] = stream_socket_pair(
@@ -78,15 +83,15 @@ final class Buffer implements Runner
             return;
         }
 
-        $select = $this->running->reduce(
+        $watch = $this->running->reduce(
             $this->sockets->watch(new ElapsedPeriod(1000)), //1 second timeout
-            static function(Select $select, Selectable $stream): Select {
-                return $select->forRead($stream);
+            static function(Watch $watch, Selectable $stream): Watch {
+                return $watch->forRead($stream);
             }
         );
 
         do {
-            $ready = $select();
+            $ready = $watch();
         } while ($ready->toRead()->empty());
 
         $ready
@@ -95,6 +100,7 @@ final class Buffer implements Runner
                 //truly wait the process to finish, as the stream is just a signal
                 $this->running->get($stream)->wait();
             });
+        /** @var Map<Selectable, Process> */
         $this->running = $ready
             ->toRead()
             ->reduce(

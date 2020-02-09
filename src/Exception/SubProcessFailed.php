@@ -5,6 +5,7 @@ namespace Innmind\ProcessManager\Exception;
 
 class SubProcessFailed extends RuntimeException
 {
+    /** @var callable */
     private $callable;
     private int $exitCode;
 

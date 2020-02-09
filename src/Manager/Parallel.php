@@ -13,13 +13,17 @@ use Innmind\Immutable\Sequence;
 final class Parallel implements Manager
 {
     private Runner $run;
+    /** @var Sequence<callable> */
     private Sequence $scheduled;
+    /** @var Sequence<Process> */
     private Sequence $processes;
 
     public function __construct(Runner $run)
     {
         $this->run = $run;
+        /** @var Sequence<callable> */
         $this->scheduled = Sequence::of('callable');
+        /** @var Sequence<Process> */
         $this->processes = Sequence::of(Process::class);
     }
 

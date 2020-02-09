@@ -19,7 +19,9 @@ final class Pool implements Manager
     private Runner $run;
     private Sockets $sockets;
     private ?Buffer $buffer = null;
+    /** @var Sequence<callable> */
     private Sequence $scheduled;
+    /** @var Sequence<Process> */
     private Sequence $processes;
 
     public function __construct(int $size, Runner $run, Sockets $sockets)
@@ -31,7 +33,9 @@ final class Pool implements Manager
         $this->size = $size;
         $this->run = $run;
         $this->sockets = $sockets;
+        /** @var Sequence<callable> */
         $this->scheduled = Sequence::of('callable');
+        /** @var Sequence<Process> */
         $this->processes = Sequence::of(Process::class);
     }
 
@@ -47,14 +51,15 @@ final class Pool implements Manager
 
     public function __invoke(): Manager
     {
+        $buffer = new Buffer($this->size, $this->run, $this->sockets);
         $self = clone $this;
-        $self->buffer = new Buffer($this->size, $this->run, $this->sockets);
+        $self->buffer = $buffer;
         $self->processes = $self
             ->scheduled
             ->take($self->size)
             ->mapTo(
                 Process::class,
-                static fn(callable $callable): Process => ($self->buffer)($callable),
+                static fn(callable $callable): Process => $buffer($callable),
             );
 
         return $self;
