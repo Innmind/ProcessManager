@@ -22,7 +22,7 @@ class KillOnErrorTest extends TestCase
     public function testSchedule()
     {
         $inner = $this->createMock(Manager::class);
-        $fn = function(){};
+        $fn = static function() {};
         $inner
             ->expects($this->once())
             ->method('schedule')

@@ -105,7 +105,7 @@ final class Buffer implements Runner
             ->toRead()
             ->reduce(
                 $this->running,
-                function(Map $carry, Selectable $stream): Map {
+                static function(Map $carry, Selectable $stream): Map {
                     return $carry->remove($stream);
                 },
             );

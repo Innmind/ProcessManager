@@ -23,6 +23,7 @@ final class Fork implements Process
     public function __construct(CurrentProcess $process, callable $callable)
     {
         $this->callable = \Closure::fromCallable($callable);
+
         try {
             $side = $process->fork();
 
@@ -31,6 +32,7 @@ final class Fork implements Process
                     $this->registerSignalHandlers($process);
 
                     $callable();
+
                     exit(0);
                 } catch (\Throwable $e) {
                     exit(1);
@@ -48,9 +50,6 @@ final class Fork implements Process
         return $this->child->running();
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function wait(): void
     {
         $exitCode = $this->child->wait();
@@ -75,7 +74,7 @@ final class Fork implements Process
 
     private function registerSignalHandlers(CurrentProcess $process): void
     {
-        $exit = function(): void {
+        $exit = static function(): void {
             exit(1);
         };
 

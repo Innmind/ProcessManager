@@ -53,14 +53,14 @@ class BufferTest extends TestCase
             $this->createMock(Clock::class),
             $this->createMock(Halt::class),
         )), $this->createMock(Sockets::class));
-        $start = time();
+        $start = \time();
 
-        $process = $buffer(function(): void {
-            sleep(10);
+        $process = $buffer(static function(): void {
+            \sleep(10);
         });
 
         $this->assertInstanceOf(Fork::class, $process);
-        $this->assertLessThanOrEqual(1, time() - $start);
+        $this->assertLessThanOrEqual(1, \time() - $start);
     }
 
     public function testBufferInvokation()
@@ -74,17 +74,17 @@ class BufferTest extends TestCase
             ->method('watch')
             ->with(new ElapsedPeriod(1000))
             ->willReturn(new Select(new ElapsedPeriod(1000)));
-        $sleep = function(): void {
-            sleep(5);
+        $sleep = static function(): void {
+            \sleep(5);
         };
-        $start = time();
+        $start = \time();
 
         $buffer($sleep);
         $buffer($sleep);
         $process = $buffer($sleep);
 
         $this->assertInstanceOf(Fork::class, $process);
-        $this->assertGreaterThanOrEqual(5, time() - $start);
-        $this->assertLessThanOrEqual(6, time() - $start);
+        $this->assertGreaterThanOrEqual(5, \time() - $start);
+        $this->assertLessThanOrEqual(6, \time() - $start);
     }
 }

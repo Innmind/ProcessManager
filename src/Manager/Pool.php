@@ -39,16 +39,6 @@ final class Pool implements Manager
         $this->processes = Sequence::of(Process::class);
     }
 
-    public function schedule(callable $callable): Manager
-    {
-        $self = clone $this;
-        $self->scheduled = ($self->scheduled)($callable);
-        $self->processes = $self->processes->clear();
-        $self->buffer = null;
-
-        return $self;
-    }
-
     public function __invoke(): Manager
     {
         $buffer = new Buffer($this->size, $this->run, $this->sockets);
@@ -61,6 +51,16 @@ final class Pool implements Manager
                 Process::class,
                 static fn(callable $callable): Process => $buffer($callable),
             );
+
+        return $self;
+    }
+
+    public function schedule(callable $callable): Manager
+    {
+        $self = clone $this;
+        $self->scheduled = ($self->scheduled)($callable);
+        $self->processes = $self->processes->clear();
+        $self->buffer = null;
 
         return $self;
     }

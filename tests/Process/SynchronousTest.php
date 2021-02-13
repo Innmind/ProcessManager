@@ -13,12 +13,12 @@ class SynchronousTest extends TestCase
 {
     public function testInterface()
     {
-        $start = time();
+        $start = \time();
         $process = new Synchronous(static function() {
-            sleep(1);
+            \sleep(1);
         });
 
-        $this->assertGreaterThanOrEqual(1, time() - $start);
+        $this->assertGreaterThanOrEqual(1, \time() - $start);
         $this->assertInstanceOf(Process::class, $process);
         $this->assertFalse($process->running());
         $this->assertNull($process->wait());

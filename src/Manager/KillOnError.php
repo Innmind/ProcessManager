@@ -14,19 +14,20 @@ final class KillOnError implements Manager
         $this->manager = $manager;
     }
 
-    public function schedule(callable $callable): Manager
-    {
-        return new self($this->manager->schedule($callable));
-    }
-
     public function __invoke(): Manager
     {
         try {
             return new self(($this->manager)());
         } catch (\Throwable $e) {
             $this->kill();
+
             throw $e;
         }
+    }
+
+    public function schedule(callable $callable): Manager
+    {
+        return new self($this->manager->schedule($callable));
     }
 
     public function wait(): void
@@ -35,6 +36,7 @@ final class KillOnError implements Manager
             $this->manager->wait();
         } catch (\Throwable $e) {
             $this->kill();
+
             throw $e;
         }
     }

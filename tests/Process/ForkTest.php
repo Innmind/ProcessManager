@@ -22,24 +22,24 @@ class ForkTest extends TestCase
 {
     public function testInterface()
     {
-        $start = time();
+        $start = \time();
         $process = new Fork(
             new Generic(
                 $this->createMock(Clock::class),
                 $this->createMock(Halt::class)
             ),
             static function() {
-                sleep(2);
+                \sleep(2);
             }
         );
 
-        $this->assertLessThan(1, time() - $start);
+        $this->assertLessThan(1, \time() - $start);
         $this->assertInstanceOf(Process::class, $process);
-        $this->assertTrue(is_int($process->pid()));
-        $this->assertTrue($process->pid() > getmypid());
+        $this->assertTrue(\is_int($process->pid()));
+        $this->assertTrue($process->pid() > \getmypid());
         $this->assertTrue($process->running());
         $this->assertNull($process->wait());
-        $this->assertGreaterThanOrEqual(2, time() - $start);
+        $this->assertGreaterThanOrEqual(2, \time() - $start);
     }
 
     public function testThrowWhenCallableFails()
@@ -50,7 +50,8 @@ class ForkTest extends TestCase
                 $this->createMock(Halt::class)
             ),
             $fn = static function() {
-                sleep(2);
+                \sleep(2);
+
                 throw new \Exception;
             }
         );
@@ -72,7 +73,7 @@ class ForkTest extends TestCase
                 $this->createMock(Halt::class)
             ),
             static function() {
-                sleep(10);
+                \sleep(10);
             }
         );
 
@@ -88,7 +89,7 @@ class ForkTest extends TestCase
             ->will($this->throwException(new ForkFailed));
 
         try {
-            new Fork($process, $fn = function() {});
+            new Fork($process, $fn = static function() {});
 
             $this->fail('it should throw');
         } catch (CouldNotFork $e) {
