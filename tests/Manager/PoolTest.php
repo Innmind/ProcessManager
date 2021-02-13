@@ -259,25 +259,24 @@ class PoolTest extends TestCase
         $sockets = $this->createMock(Sockets::class);
         $runner = $this->createMock(Runner::class);
         $runner
-            ->expects($this->at(0))
+            ->expects($this->exactly(2))
             ->method('__invoke')
-            ->willReturn($process = $this->createMock(Process::class));
-        $process
+            ->will($this->onConsecutiveCalls(
+                $process1 = $this->createMock(Process::class),
+                $process2 = $this->createMock(Process::class),
+            ));
+        $process1
             ->expects($this->once())
             ->method('running')
             ->willReturn(false);
-        $process
+        $process1
             ->expects($this->never())
             ->method('kill');
-        $runner
-            ->expects($this->at(1))
-            ->method('__invoke')
-            ->willReturn($process = $this->createMock(Process::class));
-        $process
+        $process2
             ->expects($this->once())
             ->method('running')
             ->willReturn(true);
-        $process
+        $process2
             ->expects($this->once())
             ->method('kill');
         $parallel = (new Pool(2, $runner, $sockets))
