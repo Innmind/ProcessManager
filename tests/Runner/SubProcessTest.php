@@ -31,7 +31,7 @@ class SubProcessTest extends TestCase
         ));
 
         $process = $run($fn = static function() {
-            sleep(1);
+            \sleep(1);
         });
 
         $this->assertInstanceOf(Fork::class, $process);

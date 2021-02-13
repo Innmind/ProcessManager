@@ -17,9 +17,6 @@ final class Synchronous implements Process
         return false;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function wait(): void
     {
     }

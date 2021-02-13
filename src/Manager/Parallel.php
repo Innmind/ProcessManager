@@ -27,15 +27,6 @@ final class Parallel implements Manager
         $this->processes = Sequence::of(Process::class);
     }
 
-    public function schedule(callable $callable): Manager
-    {
-        $self = clone $this;
-        $self->scheduled = ($self->scheduled)($callable);
-        $self->processes = $self->processes->clear();
-
-        return $self;
-    }
-
     public function __invoke(): Manager
     {
         $self = clone $this;
@@ -43,6 +34,15 @@ final class Parallel implements Manager
             Process::class,
             fn(callable $callable): Process => ($this->run)($callable),
         );
+
+        return $self;
+    }
+
+    public function schedule(callable $callable): Manager
+    {
+        $self = clone $this;
+        $self->scheduled = ($self->scheduled)($callable);
+        $self->processes = $self->processes->clear();
 
         return $self;
     }
@@ -62,5 +62,5 @@ final class Parallel implements Manager
             ->foreach(static function(Process $process): void {
                 $process->kill();
             });
-        }
+    }
 }

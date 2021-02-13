@@ -34,7 +34,7 @@ class ParallelTest extends TestCase
             $this->createMock(Halt::class)
         )));
 
-        $parallel2 = $parallel->schedule(function(){});
+        $parallel2 = $parallel->schedule(static function() {});
 
         $this->assertInstanceOf(Parallel::class, $parallel2);
         $this->assertNotSame($parallel2, $parallel);
@@ -58,37 +58,37 @@ class ParallelTest extends TestCase
     public function testInvokation()
     {
         $parallel = new Parallel(new SameProcess);
-        $start = time();
+        $start = \time();
         $parallel = $parallel->schedule(static function() {
-            sleep(1);
+            \sleep(1);
         });
         $parallel = $parallel->schedule(static function() {
-            sleep(1);
+            \sleep(1);
         });
 
-        $this->assertLessThan(2, time() - $start);
+        $this->assertLessThan(2, \time() - $start);
 
         $parallel = $parallel();
 
-        $this->assertGreaterThanOrEqual(2, time() - $start);
+        $this->assertGreaterThanOrEqual(2, \time() - $start);
         $this->assertNull($parallel->wait());
     }
 
     public function testParallelInvokation()
     {
-        $start = time();
+        $start = \time();
         $parallel = (new Parallel(new SubProcess(new Generic(
             $this->createMock(Clock::class),
             $this->createMock(Halt::class)
         ))))
             ->schedule(static function() {
-                sleep(10);
+                \sleep(10);
             })
             ->schedule(static function() {
-                sleep(5);
+                \sleep(5);
             })()
             ->wait();
-        $delta = time() - $start;
+        $delta = \time() - $start;
 
         $this->assertGreaterThanOrEqual(10, $delta);
         $this->assertLessThan(12, $delta);
@@ -101,12 +101,12 @@ class ParallelTest extends TestCase
             $this->createMock(Halt::class)
         )));
         $parallel = $parallel->schedule(static function() {
-            sleep(1);
+            \sleep(1);
         });
 
-        $start = time();
+        $start = \time();
         $this->assertNull($parallel->wait());
-        $this->assertLessThan(1, time() - $start);
+        $this->assertLessThan(1, \time() - $start);
     }
 
     public function testThrowWhenSubProcessFailed()
@@ -114,27 +114,27 @@ class ParallelTest extends TestCase
         $this->expectException(SubProcessFailed::class);
 
         try {
-            $start = time();
+            $start = \time();
             (new Parallel(new SubProcess(new Generic(
                 $this->createMock(Clock::class),
                 $this->createMock(Halt::class)
             ))))
                 ->schedule(static function() {
-                    sleep(10);
+                    \sleep(10);
                 })
                 ->schedule(static function() {
-                    sleep(5);
+                    \sleep(5);
                 })
                 ->schedule(static function() {
                     throw new \Exception;
                 })
                 ->schedule(static function() {
-                    sleep(30);
+                    \sleep(30);
                 })()
                 ->wait();
         } finally {
-            $this->assertGreaterThanOrEqual(5, time() - $start);
-            $this->assertLessThanOrEqual(10, time() - $start);
+            $this->assertGreaterThanOrEqual(5, \time() - $start);
+            $this->assertLessThanOrEqual(10, \time() - $start);
             //it finishes executing the first callable because we wait in the
             //order of the schedules
         }
@@ -144,53 +144,53 @@ class ParallelTest extends TestCase
     {
         $runner = $this->createMock(Runner::class);
         $runner
-            ->expects($this->at(0))
+            ->expects($this->exactly(2))
             ->method('__invoke')
-            ->willReturn($process = $this->createMock(Process::class));
-        $process
+            ->will($this->onConsecutiveCalls(
+                $process1 = $this->createMock(Process::class),
+                $process2 = $this->createMock(Process::class),
+            ));
+        $process1
             ->expects($this->once())
             ->method('running')
             ->willReturn(false);
-        $process
+        $process1
             ->expects($this->never())
             ->method('kill');
-        $runner
-            ->expects($this->at(1))
-            ->method('__invoke')
-            ->willReturn($process = $this->createMock(Process::class));
-        $process
+        $process2
             ->expects($this->once())
             ->method('running')
             ->willReturn(true);
-        $process
+        $process2
             ->expects($this->once())
             ->method('kill');
         $parallel = (new Parallel($runner))
-            ->schedule(function(){})
-            ->schedule(function(){})();
+            ->schedule(static function() {})
+            ->schedule(static function() {})();
 
         $this->assertNull($parallel->kill());
     }
 
     public function testRealKill()
     {
-        $start = time();
+        $start = \time();
         $parallel = (new Parallel(new SubProcess(new Generic(
             $this->createMock(Clock::class),
             $this->createMock(Halt::class)
         ))))
-            ->schedule(function(){
-                sleep(10);
+            ->schedule(static function() {
+                \sleep(10);
             })
-            ->schedule(function(){
-                sleep(5);
+            ->schedule(static function() {
+                \sleep(5);
             })();
         $this->assertNull($parallel->kill());
+
         try {
             $this->assertNull($parallel->wait());
         } catch (\Throwable $e) {
             //pass
         }
-        $this->assertLessThan(2, time() - $start);
+        $this->assertLessThan(2, \time() - $start);
     }
 }

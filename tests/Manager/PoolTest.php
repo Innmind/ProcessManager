@@ -58,7 +58,7 @@ class PoolTest extends TestCase
             $this->createMock(Sockets::class),
         );
 
-        $pool2 = $pool->schedule(function(){});
+        $pool2 = $pool->schedule(static function() {});
 
         $this->assertInstanceOf(Pool::class, $pool2);
         $this->assertNotSame($pool, $pool2);
@@ -92,19 +92,19 @@ class PoolTest extends TestCase
             ->method('watch')
             ->with(new ElapsedPeriod(1000))
             ->willReturn(new Select(new ElapsedPeriod(1000)));
-        $start = time();
+        $start = \time();
         $pool = (new Pool(2, new SameProcess, $sockets))
             ->schedule(static function() {
-                sleep(10);
+                \sleep(10);
             })
             ->schedule(static function() {
-                sleep(5);
+                \sleep(5);
             })
             ->schedule(static function() {
-                sleep(3);
+                \sleep(3);
             })()
             ->wait();
-        $delta = time() - $start;
+        $delta = \time() - $start;
 
         $this->assertGreaterThanOrEqual(18, $delta);
     }
@@ -117,22 +117,22 @@ class PoolTest extends TestCase
             ->method('watch')
             ->with(new ElapsedPeriod(1000))
             ->willReturn(new Select(new ElapsedPeriod(1000)));
-        $start = time();
+        $start = \time();
         (new Pool(2, new SubProcess(new Generic(
             $this->createMock(Clock::class),
             $this->createMock(Halt::class)
         )), $sockets))
             ->schedule(static function() {
-                sleep(10);
+                \sleep(10);
             })
             ->schedule(static function() {
-                sleep(5);
+                \sleep(5);
             })
             ->schedule(static function() {
-                sleep(3);
+                \sleep(3);
             })()
             ->wait();
-        $delta = time() - $start;
+        $delta = \time() - $start;
 
         $this->assertGreaterThanOrEqual(10, $delta);
         $this->assertLessThan(12, $delta);
@@ -149,31 +149,31 @@ class PoolTest extends TestCase
             ->method('watch')
             ->with(new ElapsedPeriod(1000))
             ->willReturn(new Select(new ElapsedPeriod(1000)));
-        $start = time();
+        $start = \time();
         (new Pool($size, new SubProcess(new Generic(
             $this->createMock(Clock::class),
             $this->createMock(Halt::class)
         )), $sockets))
             ->schedule(static function() {
-                sleep(2);
+                \sleep(2);
             })
             ->schedule(static function() {
-                sleep(2);
+                \sleep(2);
             })
             ->schedule(static function() {
-                sleep(2);
+                \sleep(2);
             })
             ->schedule(static function() {
-                sleep(2);
+                \sleep(2);
             })
             ->schedule(static function() {
-                sleep(2);
+                \sleep(2);
             })
             ->schedule(static function() {
-                sleep(2);
+                \sleep(2);
             })()
             ->wait();
-        $delta = time() - $start;
+        $delta = \time() - $start;
 
         $this->assertGreaterThanOrEqual($expected, $delta);
         $this->assertLessThan($expected + 2, $delta);
@@ -182,22 +182,22 @@ class PoolTest extends TestCase
     public function testInvokationWhenPoolHigherThanScheduled()
     {
         $sockets = $this->createMock(Sockets::class);
-        $start = time();
+        $start = \time();
         (new Pool(20, new SubProcess(new Generic(
             $this->createMock(Clock::class),
             $this->createMock(Halt::class)
         )), $sockets))
             ->schedule(static function() {
-                sleep(10);
+                \sleep(10);
             })
             ->schedule(static function() {
-                sleep(5);
+                \sleep(5);
             })
             ->schedule(static function() {
-                sleep(3);
+                \sleep(3);
             })()
             ->wait();
-        $delta = time() - $start;
+        $delta = \time() - $start;
 
         $this->assertGreaterThanOrEqual(10, $delta);
         $this->assertLessThan(12, $delta);
@@ -211,12 +211,12 @@ class PoolTest extends TestCase
             $this->createMock(Halt::class)
         )), $sockets);
         $pool = $pool->schedule(static function() {
-            sleep(1);
+            \sleep(1);
         });
 
-        $start = time();
+        $start = \time();
         $this->assertNull($pool->wait());
-        $this->assertLessThan(1, time() - $start);
+        $this->assertLessThan(1, \time() - $start);
     }
 
     public function testThrowWhenChildFailed()
@@ -230,27 +230,27 @@ class PoolTest extends TestCase
                 ->method('watch')
                 ->with(new ElapsedPeriod(1000))
                 ->willReturn(new Select(new ElapsedPeriod(1000)));
-            $start = time();
+            $start = \time();
             (new Pool(2, new SubProcess(new Generic(
                 $this->createMock(Clock::class),
                 $this->createMock(Halt::class)
             )), $sockets))
                 ->schedule(static function() {
-                    sleep(10);
+                    \sleep(10);
                 })
                 ->schedule(static function() {
-                    sleep(5);
+                    \sleep(5);
                 })
                 ->schedule(static function() {
                     throw new \Exception;
                 })
                 ->schedule(static function() {
-                    sleep(30);
+                    \sleep(30);
                 })()
                 ->wait();
         } finally {
-            $this->assertGreaterThanOrEqual(5, time() - $start);
-            $this->assertLessThanOrEqual(7, time() - $start);
+            $this->assertGreaterThanOrEqual(5, \time() - $start);
+            $this->assertLessThanOrEqual(7, \time() - $start);
         }
     }
 
@@ -259,54 +259,54 @@ class PoolTest extends TestCase
         $sockets = $this->createMock(Sockets::class);
         $runner = $this->createMock(Runner::class);
         $runner
-            ->expects($this->at(0))
+            ->expects($this->exactly(2))
             ->method('__invoke')
-            ->willReturn($process = $this->createMock(Process::class));
-        $process
+            ->will($this->onConsecutiveCalls(
+                $process1 = $this->createMock(Process::class),
+                $process2 = $this->createMock(Process::class),
+            ));
+        $process1
             ->expects($this->once())
             ->method('running')
             ->willReturn(false);
-        $process
+        $process1
             ->expects($this->never())
             ->method('kill');
-        $runner
-            ->expects($this->at(1))
-            ->method('__invoke')
-            ->willReturn($process = $this->createMock(Process::class));
-        $process
+        $process2
             ->expects($this->once())
             ->method('running')
             ->willReturn(true);
-        $process
+        $process2
             ->expects($this->once())
             ->method('kill');
         $parallel = (new Pool(2, $runner, $sockets))
-            ->schedule(function(){})
-            ->schedule(function(){})();
+            ->schedule(static function() {})
+            ->schedule(static function() {})();
 
         $this->assertNull($parallel->kill());
     }
 
     public function testRealKill()
     {
-        $start = time();
+        $start = \time();
         $parallel = (new Pool(2, new SubProcess(new Generic(
             $this->createMock(Clock::class),
             $this->createMock(Halt::class)
         )), new Sockets\Unix))
-            ->schedule(function(){
-                sleep(10);
+            ->schedule(static function() {
+                \sleep(10);
             })
-            ->schedule(function(){
-                sleep(5);
+            ->schedule(static function() {
+                \sleep(5);
             })();
         $this->assertNull($parallel->kill());
+
         try {
             $this->assertNull($parallel->wait());
         } catch (\Throwable $e) {
             //pass
         }
-        $this->assertLessThan(2, time() - $start);
+        $this->assertLessThan(2, \time() - $start);
     }
 
     public function sizes(): array

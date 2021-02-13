@@ -22,7 +22,7 @@ class SameProcessTest extends TestCase
         $run = new SameProcess;
 
         $process = $run($fn = static function() {
-            sleep(1);
+            \sleep(1);
         });
 
         $this->assertInstanceOf(Synchronous::class, $process);

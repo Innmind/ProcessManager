@@ -39,16 +39,6 @@ final class Pool implements Manager
         $this->processes = Sequence::of(Process::class);
     }
 
-    public function schedule(callable $callable): Manager
-    {
-        $self = clone $this;
-        $self->scheduled = ($self->scheduled)($callable);
-        $self->processes = $self->processes->clear();
-        $self->buffer = null;
-
-        return $self;
-    }
-
     public function __invoke(): Manager
     {
         $buffer = new Buffer($this->size, $this->run, $this->sockets);
@@ -65,26 +55,38 @@ final class Pool implements Manager
         return $self;
     }
 
+    public function schedule(callable $callable): Manager
+    {
+        $self = clone $this;
+        $self->scheduled = ($self->scheduled)($callable);
+        $self->processes = $self->processes->clear();
+        $self->buffer = null;
+
+        return $self;
+    }
+
     public function wait(): void
     {
         if (\is_null($this->buffer)) {
             return; //do not wait if not even started
         }
 
-        $this
+        /** @var Sequence<Process> */
+        $processes = $this
             ->scheduled
             ->drop($this->size)
             ->reduce(
                 $this->processes,
                 function(Sequence $carry, callable $callable): Sequence {
+                    /** @psalm-suppress PossiblyNullFunctionCall */
                     return ($carry)(
                         ($this->buffer)($callable),
                     );
                 },
-            )
-            ->foreach(static function(Process $process): void {
-                $process->wait();
-            });
+            );
+        $processes->foreach(static function(Process $process): void {
+            $process->wait();
+        });
     }
 
     public function kill(): void

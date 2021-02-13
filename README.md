@@ -1,6 +1,6 @@
 # ProcessManager
 
-[![Build Status](https://github.com/Innmind/ProcessManager/workflows/CI/badge.svg)](https://github.com/Innmind/ProcessManager/actions?query=workflow%3ACI)
+[![Build Status](https://github.com/Innmind/ProcessManager/workflows/CI/badge.svg?branch=master)](https://github.com/Innmind/ProcessManager/actions?query=workflow%3ACI)
 [![codecov](https://codecov.io/gh/Innmind/ProcessManager/branch/develop/graph/badge.svg)](https://codecov.io/gh/Innmind/ProcessManager)
 [![Type Coverage](https://shepherd.dev/github/Innmind/ProcessManager/coverage.svg)](https://shepherd.dev/github/Innmind/ProcessManager)
 
