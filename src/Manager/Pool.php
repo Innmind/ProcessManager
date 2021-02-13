@@ -71,20 +71,22 @@ final class Pool implements Manager
             return; //do not wait if not even started
         }
 
-        $this
+        /** @var Sequence<Process> */
+        $processes = $this
             ->scheduled
             ->drop($this->size)
             ->reduce(
                 $this->processes,
                 function(Sequence $carry, callable $callable): Sequence {
+                    /** @psalm-suppress PossiblyNullFunctionCall */
                     return ($carry)(
                         ($this->buffer)($callable),
                     );
                 },
-            )
-            ->foreach(static function(Process $process): void {
-                $process->wait();
-            });
+            );
+        $processes->foreach(static function(Process $process): void {
+            $process->wait();
+        });
     }
 
     public function kill(): void
