@@ -23,18 +23,18 @@ use Innmind\Immutable\{
 
 final class Buffer implements Runner
 {
+    /** @var int<1, max> */
     private int $size;
     private Runner $run;
     private Sockets $sockets;
     /** @var Map<Selectable, Process> */
     private Map $running;
 
+    /**
+     * @param int<1, max> $size
+     */
     public function __construct(int $size, Runner $runner, Sockets $sockets)
     {
-        if ($size < 1) {
-            throw new DomainException((string) $size);
-        }
-
         $this->size = $size;
         $this->run = $runner;
         $this->sockets = $sockets;

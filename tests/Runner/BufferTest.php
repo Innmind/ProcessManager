@@ -8,7 +8,6 @@ use Innmind\ProcessManager\{
     Runner\SubProcess,
     Runner,
     Process\Fork,
-    Exception\DomainException,
 };
 use Innmind\OperatingSystem\{
     CurrentProcess\Generic,
@@ -30,17 +29,6 @@ class BufferTest extends TestCase
                 $this->createMock(Runner::class),
                 $this->createMock(Sockets::class),
             ),
-        );
-    }
-
-    public function testThrowWhenBufferSizeTooLow()
-    {
-        $this->expectException(DomainException::class);
-
-        new Buffer(
-            0,
-            $this->createMock(Runner::class),
-            $this->createMock(Sockets::class),
         );
     }
 
