@@ -10,6 +10,7 @@ use Innmind\ProcessManager\{
     Runner\SameProcess,
     Runner\SubProcess,
     Process,
+    Running,
     Exception\SubProcessFailed,
 };
 use Innmind\OperatingSystem\{
@@ -63,10 +64,9 @@ class PoolTest extends TestCase
             ->expects($this->never())
             ->method('watch');
 
-        $pool2 = $pool->start();
+        $running = $pool->start();
 
-        $this->assertInstanceOf(Pool::class, $pool2);
-        $this->assertNotSame($pool2, $pool);
+        $this->assertInstanceOf(Running::class, $running);
     }
 
     public function testInvokation()
@@ -187,21 +187,6 @@ class PoolTest extends TestCase
 
         $this->assertGreaterThanOrEqual(10, $delta);
         $this->assertLessThan(12, $delta);
-    }
-
-    public function testDoesntWaitWhenNotInvoked()
-    {
-        $sockets = $this->createMock(Sockets::class);
-        $pool = new Pool(3, new SubProcess(Generic::of(
-            $this->createMock(Halt::class),
-        )), $sockets);
-        $pool = $pool->schedule(static function() {
-            \sleep(1);
-        });
-
-        $start = \time();
-        $this->assertNull($pool->wait());
-        $this->assertLessThan(1, \time() - $start);
     }
 
     public function testThrowWhenChildFailed()

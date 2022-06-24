@@ -10,6 +10,7 @@ use Innmind\ProcessManager\{
     Runner\SameProcess,
     Runner\SubProcess,
     Process,
+    Running,
     Exception\SubProcessFailed,
 };
 use Innmind\OperatingSystem\CurrentProcess\Generic;
@@ -47,10 +48,9 @@ class ParallelTest extends TestCase
             ->expects($this->never())
             ->method('__invoke');
 
-        $parallel2 = $parallel->start();
+        $running = $parallel->start();
 
-        $this->assertInstanceOf(Parallel::class, $parallel2);
-        $this->assertNotSame($parallel2, $parallel);
+        $this->assertInstanceOf(Running::class, $running);
     }
 
     public function testInvokation()
@@ -90,20 +90,6 @@ class ParallelTest extends TestCase
 
         $this->assertGreaterThanOrEqual(10, $delta);
         $this->assertLessThan(12, $delta);
-    }
-
-    public function testDoesntWaitWhenNotInvoked()
-    {
-        $parallel = new Parallel(new SubProcess(Generic::of(
-            $this->createMock(Halt::class),
-        )));
-        $parallel = $parallel->schedule(static function() {
-            \sleep(1);
-        });
-
-        $start = \time();
-        $this->assertNull($parallel->wait());
-        $this->assertLessThan(1, \time() - $start);
     }
 
     public function testThrowWhenSubProcessFailed()

@@ -5,12 +5,10 @@ namespace Innmind\ProcessManager;
 
 interface Manager
 {
-    public function start(): self;
+    public function start(): Running;
 
     /**
      * @param callable(): void $callable
      */
     public function schedule(callable $callable): self;
-    public function wait(): void;
-    public function kill(): void;
 }

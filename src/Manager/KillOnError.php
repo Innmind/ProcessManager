@@ -3,7 +3,10 @@ declare(strict_types = 1);
 
 namespace Innmind\ProcessManager\Manager;
 
-use Innmind\ProcessManager\Manager;
+use Innmind\ProcessManager\{
+    Manager,
+    Running,
+};
 
 final class KillOnError implements Manager
 {
@@ -14,35 +17,13 @@ final class KillOnError implements Manager
         $this->manager = $manager;
     }
 
-    public function start(): Manager
+    public function start(): Running
     {
-        try {
-            return new self($this->manager->start());
-        } catch (\Throwable $e) {
-            $this->kill();
-
-            throw $e;
-        }
+        return new Running\KillOnError($this->manager->start());
     }
 
     public function schedule(callable $callable): Manager
     {
         return new self($this->manager->schedule($callable));
-    }
-
-    public function wait(): void
-    {
-        try {
-            $this->manager->wait();
-        } catch (\Throwable $e) {
-            $this->kill();
-
-            throw $e;
-        }
-    }
-
-    public function kill(): void
-    {
-        $this->manager->kill();
     }
 }
