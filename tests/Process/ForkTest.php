@@ -12,10 +12,10 @@ use Innmind\ProcessManager\{
 use Innmind\OperatingSystem\{
     CurrentProcess\Generic,
     CurrentProcess,
-    Exception\ForkFailed,
+    CurrentProcess\ForkFailed,
 };
-use Innmind\TimeContinuum\Clock;
 use Innmind\TimeWarp\Halt;
+use Innmind\Immutable\Either;
 use PHPUnit\Framework\TestCase;
 
 class ForkTest extends TestCase
@@ -24,8 +24,7 @@ class ForkTest extends TestCase
     {
         $start = \time();
         $process = new Fork(
-            new Generic(
-                $this->createMock(Clock::class),
+            Generic::of(
                 $this->createMock(Halt::class),
             ),
             static function() {
@@ -45,8 +44,7 @@ class ForkTest extends TestCase
     public function testThrowWhenCallableFails()
     {
         $process = new Fork(
-            new Generic(
-                $this->createMock(Clock::class),
+            Generic::of(
                 $this->createMock(Halt::class),
             ),
             $fn = static function() {
@@ -68,8 +66,7 @@ class ForkTest extends TestCase
     public function testKill()
     {
         $process = new Fork(
-            new Generic(
-                $this->createMock(Clock::class),
+            Generic::of(
                 $this->createMock(Halt::class),
             ),
             static function() {
@@ -86,7 +83,7 @@ class ForkTest extends TestCase
         $process
             ->expects($this->once())
             ->method('fork')
-            ->will($this->throwException(new ForkFailed));
+            ->willReturn(Either::left(new ForkFailed));
 
         try {
             new Fork($process, $fn = static function() {});

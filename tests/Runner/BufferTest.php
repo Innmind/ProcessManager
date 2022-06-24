@@ -15,10 +15,7 @@ use Innmind\OperatingSystem\{
     Sockets,
 };
 use Innmind\Stream\Watch\Select;
-use Innmind\TimeContinuum\{
-    Clock,
-    Earth\ElapsedPeriod,
-};
+use Innmind\TimeContinuum\Earth\ElapsedPeriod;
 use Innmind\TimeWarp\Halt;
 use PHPUnit\Framework\TestCase;
 
@@ -49,8 +46,7 @@ class BufferTest extends TestCase
 
     public function testInvokeDirectly()
     {
-        $buffer = new Buffer(1, new SubProcess(new Generic(
-            $this->createMock(Clock::class),
+        $buffer = new Buffer(1, new SubProcess(Generic::of(
             $this->createMock(Halt::class),
         )), $this->createMock(Sockets::class));
         $start = \time();
@@ -65,15 +61,14 @@ class BufferTest extends TestCase
 
     public function testBufferInvokation()
     {
-        $buffer = new Buffer(2, new SubProcess(new Generic(
-            $this->createMock(Clock::class),
+        $buffer = new Buffer(2, new SubProcess(Generic::of(
             $this->createMock(Halt::class),
         )), $sockets = $this->createMock(Sockets::class));
         $sockets
             ->expects($this->once())
             ->method('watch')
             ->with(new ElapsedPeriod(1000))
-            ->willReturn(new Select(new ElapsedPeriod(1000)));
+            ->willReturn(Select::timeoutAfter(new ElapsedPeriod(1000)));
         $sleep = static function(): void {
             \sleep(5);
         };

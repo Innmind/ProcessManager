@@ -11,7 +11,7 @@ use Innmind\ProcessManager\{
 use Innmind\OperatingSystem\{
     CurrentProcess,
     CurrentProcess\Child,
-    Exception\ForkFailed,
+    CurrentProcess\ForkFailed,
 };
 use Innmind\Signals\Signal;
 
@@ -24,25 +24,26 @@ final class Fork implements Process
     {
         $this->callable = \Closure::fromCallable($callable);
 
-        try {
-            $side = $process->fork();
+        /** @psalm-suppress PossiblyNullPropertyAssignmentValue */
+        $this->child = $process
+            ->fork()
+            ->match(
+                function() use ($process, $callable) {
+                    try {
+                        $this->registerSignalHandlers($process);
 
-            if (!$side->parent()) {
-                try {
-                    $this->registerSignalHandlers($process);
+                        $callable();
 
-                    $callable();
-
-                    exit(0);
-                } catch (\Throwable $e) {
-                    exit(1);
-                }
-            }
-        } catch (ForkFailed $e) {
-            throw new CouldNotFork($callable);
-        }
-
-        $this->child = $process->children()->get($side->child());
+                        exit(0);
+                    } catch (\Throwable $e) {
+                        exit(1);
+                    }
+                },
+                static fn($side) => match (true) {
+                    $side instanceof ForkFailed => throw new CouldNotFork($callable),
+                    $side instanceof Child => $side,
+                },
+            );
     }
 
     public function running(): bool
@@ -78,9 +79,9 @@ final class Fork implements Process
             exit(1);
         };
 
-        $process->signals()->listen(Signal::hangup(), $exit);
-        $process->signals()->listen(Signal::interrupt(), $exit);
-        $process->signals()->listen(Signal::abort(), $exit);
-        $process->signals()->listen(Signal::terminate(), $exit);
+        $process->signals()->listen(Signal::hangup, $exit);
+        $process->signals()->listen(Signal::interrupt, $exit);
+        $process->signals()->listen(Signal::abort, $exit);
+        $process->signals()->listen(Signal::terminate, $exit);
     }
 }

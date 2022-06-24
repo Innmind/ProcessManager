@@ -13,7 +13,6 @@ use Innmind\ProcessManager\{
     Exception\SubProcessFailed,
 };
 use Innmind\OperatingSystem\CurrentProcess\Generic;
-use Innmind\TimeContinuum\Clock;
 use Innmind\TimeWarp\Halt;
 use PHPUnit\Framework\TestCase;
 
@@ -29,8 +28,7 @@ class ParallelTest extends TestCase
 
     public function testSchedule()
     {
-        $parallel = new Parallel(new SubProcess(new Generic(
-            $this->createMock(Clock::class),
+        $parallel = new Parallel(new SubProcess(Generic::of(
             $this->createMock(Halt::class),
         )));
 
@@ -77,8 +75,7 @@ class ParallelTest extends TestCase
     public function testParallelInvokation()
     {
         $start = \time();
-        $parallel = (new Parallel(new SubProcess(new Generic(
-            $this->createMock(Clock::class),
+        $parallel = (new Parallel(new SubProcess(Generic::of(
             $this->createMock(Halt::class),
         ))))
             ->schedule(static function() {
@@ -96,8 +93,7 @@ class ParallelTest extends TestCase
 
     public function testDoesntWaitWhenNotInvoked()
     {
-        $parallel = new Parallel(new SubProcess(new Generic(
-            $this->createMock(Clock::class),
+        $parallel = new Parallel(new SubProcess(Generic::of(
             $this->createMock(Halt::class),
         )));
         $parallel = $parallel->schedule(static function() {
@@ -115,8 +111,7 @@ class ParallelTest extends TestCase
 
         try {
             $start = \time();
-            (new Parallel(new SubProcess(new Generic(
-                $this->createMock(Clock::class),
+            (new Parallel(new SubProcess(Generic::of(
                 $this->createMock(Halt::class),
             ))))
                 ->schedule(static function() {
@@ -174,8 +169,7 @@ class ParallelTest extends TestCase
     public function testRealKill()
     {
         $start = \time();
-        $parallel = (new Parallel(new SubProcess(new Generic(
-            $this->createMock(Clock::class),
+        $parallel = (new Parallel(new SubProcess(Generic::of(
             $this->createMock(Halt::class),
         ))))
             ->schedule(static function() {

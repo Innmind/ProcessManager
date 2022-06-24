@@ -18,6 +18,7 @@ use Innmind\TimeContinuum\Earth\ElapsedPeriod;
 use Innmind\Immutable\{
     Map,
     Str,
+    Set,
 };
 
 final class Buffer implements Runner
@@ -38,7 +39,7 @@ final class Buffer implements Runner
         $this->run = $runner;
         $this->sockets = $sockets;
         /** @var Map<Selectable, Process> */
-        $this->running = Map::of(Selectable::class, Process::class);
+        $this->running = Map::of();
     }
 
     public function __invoke(callable $callable): Process
@@ -62,15 +63,22 @@ final class Buffer implements Runner
             \STREAM_SOCK_STREAM,
             \STREAM_IPPROTO_IP,
         );
-        $parent = new Bidirectional($parent);
-        $child = new Bidirectional($child);
+        $parent = Bidirectional::of($parent);
+        $child = Bidirectional::of($child);
 
         $callable = static function() use ($callable, $child): void {
             try {
                 $callable();
             } finally {
-                $child->write(Str::of('terminating'));
-                $child->close();
+                // we discard any error as we cannot do anything to ping the
+                // parent if we cannot write to the stream
+                $_ = $child
+                    ->write(Str::of('terminating'))
+                    ->flatMap(static fn($child) => $child->close())
+                    ->match(
+                        static fn() => null,
+                        static fn() => null,
+                    );
             }
         };
 
@@ -86,28 +94,31 @@ final class Buffer implements Runner
         $watch = $this->running->reduce(
             $this->sockets->watch(new ElapsedPeriod(1000)), //1 second timeout
             static function(Watch $watch, Selectable $stream): Watch {
+                /** @psalm-suppress InvalidArgument */
                 return $watch->forRead($stream);
             },
         );
 
         do {
-            $ready = $watch();
-        } while ($ready->toRead()->empty());
-
-        $ready
-            ->toRead()
-            ->foreach(function(Selectable $stream): void {
-                //truly wait the process to finish, as the stream is just a signal
-                $this->running->get($stream)->wait();
-            });
-        /** @var Map<Selectable, Process> */
-        $this->running = $ready
-            ->toRead()
-            ->reduce(
-                $this->running,
-                static function(Map $carry, Selectable $stream): Map {
-                    return $carry->remove($stream);
-                },
+            $toRead = $watch()->match(
+                static fn($ready) => $ready->toRead(),
+                static fn() => Set::of(),
             );
+        } while ($toRead->empty());
+
+        $_ = $toRead->foreach(function(Selectable $stream): void {
+            //truly wait the process to finish, as the stream is just a signal
+            $_ = $this->running->get($stream)->match(
+                static fn($process) => $process->wait(),
+                static fn() => null,
+            );
+        });
+        /** @var Map<Selectable, Process> */
+        $this->running = $toRead->reduce(
+            $this->running,
+            static function(Map $carry, Selectable $stream): Map {
+                return $carry->remove($stream);
+            },
+        );
     }
 }

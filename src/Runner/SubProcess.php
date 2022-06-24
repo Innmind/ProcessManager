@@ -22,7 +22,7 @@ final class SubProcess implements Runner
     {
         $this->process = $process;
         /** @var Set<Fork> */
-        $this->processes = Set::of(Fork::class);
+        $this->processes = Set::of();
         $this->registerSignalHandlers($process);
     }
 
@@ -37,7 +37,7 @@ final class SubProcess implements Runner
     private function registerSignalHandlers(CurrentProcess $process): void
     {
         $forward = function(Signal $signal): void {
-            $this
+            $_ = $this
                 ->processes
                 ->filter(static fn(Fork $process): bool => $process->running())
                 ->foreach(static function(Fork $process) use ($signal): void {
@@ -45,9 +45,9 @@ final class SubProcess implements Runner
                 });
         };
 
-        $process->signals()->listen(Signal::hangup(), $forward);
-        $process->signals()->listen(Signal::interrupt(), $forward);
-        $process->signals()->listen(Signal::abort(), $forward);
-        $process->signals()->listen(Signal::terminate(), $forward);
+        $process->signals()->listen(Signal::hangup, $forward);
+        $process->signals()->listen(Signal::interrupt, $forward);
+        $process->signals()->listen(Signal::abort, $forward);
+        $process->signals()->listen(Signal::terminate, $forward);
     }
 }

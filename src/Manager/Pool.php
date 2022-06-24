@@ -15,6 +15,7 @@ use Innmind\Immutable\Sequence;
 
 final class Pool implements Manager
 {
+    /** @var int<1, max> */
     private int $size;
     private Runner $run;
     private Sockets $sockets;
@@ -24,19 +25,18 @@ final class Pool implements Manager
     /** @var Sequence<Process> */
     private Sequence $processes;
 
+    /**
+     * @param int<1, max> $size
+     */
     public function __construct(int $size, Runner $run, Sockets $sockets)
     {
-        if ($size < 1) {
-            throw new DomainException((string) $size);
-        }
-
         $this->size = $size;
         $this->run = $run;
         $this->sockets = $sockets;
         /** @var Sequence<callable> */
-        $this->scheduled = Sequence::of('callable');
+        $this->scheduled = Sequence::of();
         /** @var Sequence<Process> */
-        $this->processes = Sequence::of(Process::class);
+        $this->processes = Sequence::of();
     }
 
     public function __invoke(): Manager
@@ -47,10 +47,7 @@ final class Pool implements Manager
         $self->processes = $self
             ->scheduled
             ->take($self->size)
-            ->mapTo(
-                Process::class,
-                static fn(callable $callable): Process => $buffer($callable),
-            );
+            ->map(static fn(callable $callable): Process => $buffer($callable));
 
         return $self;
     }
@@ -84,14 +81,14 @@ final class Pool implements Manager
                     );
                 },
             );
-        $processes->foreach(static function(Process $process): void {
+        $_ = $processes->foreach(static function(Process $process): void {
             $process->wait();
         });
     }
 
     public function kill(): void
     {
-        $this
+        $_ = $this
             ->processes
             ->filter(static fn(Process $process): bool => $process->running())
             ->foreach(static function(Process $process): void {

@@ -22,16 +22,15 @@ final class Parallel implements Manager
     {
         $this->run = $run;
         /** @var Sequence<callable> */
-        $this->scheduled = Sequence::of('callable');
+        $this->scheduled = Sequence::of();
         /** @var Sequence<Process> */
-        $this->processes = Sequence::of(Process::class);
+        $this->processes = Sequence::of();
     }
 
     public function __invoke(): Manager
     {
         $self = clone $this;
-        $self->processes = $this->scheduled->mapTo(
-            Process::class,
+        $self->processes = $this->scheduled->map(
             fn(callable $callable): Process => ($this->run)($callable),
         );
 
@@ -49,14 +48,14 @@ final class Parallel implements Manager
 
     public function wait(): void
     {
-        $this->processes->foreach(static function(Process $process): void {
+        $_ = $this->processes->foreach(static function(Process $process): void {
             $process->wait();
         });
     }
 
     public function kill(): void
     {
-        $this
+        $_ = $this
             ->processes
             ->filter(static fn(Process $process): bool => $process->running())
             ->foreach(static function(Process $process): void {
