@@ -15,7 +15,7 @@
         "issues": "http://github.com/Innmind/ProcessManager/issues"
     },
     "require": {
-        "php": "~7.4|~8.0",
+        "php": "~8.1",
         "innmind/immutable": "~3.3",
         "innmind/stream": "~2.0",
         "innmind/operating-system": "~2.0"
