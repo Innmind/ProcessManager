@@ -47,7 +47,7 @@ final class Pool implements Manager
         $self->processes = $self
             ->scheduled
             ->take($self->size)
-            ->map(static fn(callable $callable): Process => $buffer($callable));
+            ->map($buffer);
 
         return $self;
     }
