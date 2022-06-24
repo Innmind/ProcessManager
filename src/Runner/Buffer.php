@@ -6,7 +6,6 @@ namespace Innmind\ProcessManager\Runner;
 use Innmind\ProcessManager\{
     Runner,
     Process,
-    Exception\DomainException,
 };
 use Innmind\OperatingSystem\Sockets;
 use Innmind\Stream\{
