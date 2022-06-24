@@ -27,7 +27,7 @@ final class Parallel implements Manager
         $this->processes = Sequence::of();
     }
 
-    public function __invoke(): Manager
+    public function start(): Manager
     {
         $self = clone $this;
         $self->processes = $this->scheduled->map(

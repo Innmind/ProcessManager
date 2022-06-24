@@ -14,10 +14,10 @@ final class KillOnError implements Manager
         $this->manager = $manager;
     }
 
-    public function __invoke(): Manager
+    public function start(): Manager
     {
         try {
-            return new self(($this->manager)());
+            return new self($this->manager->start());
         } catch (\Throwable $e) {
             $this->kill();
 

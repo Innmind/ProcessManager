@@ -47,7 +47,7 @@ class ParallelTest extends TestCase
             ->expects($this->never())
             ->method('__invoke');
 
-        $parallel2 = $parallel();
+        $parallel2 = $parallel->start();
 
         $this->assertInstanceOf(Parallel::class, $parallel2);
         $this->assertNotSame($parallel2, $parallel);
@@ -66,7 +66,7 @@ class ParallelTest extends TestCase
 
         $this->assertLessThan(2, \time() - $start);
 
-        $parallel = $parallel();
+        $parallel = $parallel->start();
 
         $this->assertGreaterThanOrEqual(2, \time() - $start);
         $this->assertNull($parallel->wait());
@@ -83,7 +83,8 @@ class ParallelTest extends TestCase
             })
             ->schedule(static function() {
                 \sleep(5);
-            })()
+            })
+            ->start()
             ->wait();
         $delta = \time() - $start;
 
@@ -125,7 +126,8 @@ class ParallelTest extends TestCase
                 })
                 ->schedule(static function() {
                     \sleep(30);
-                })()
+                })
+                ->start()
                 ->wait();
         } finally {
             $this->assertGreaterThanOrEqual(5, \time() - $start);
@@ -161,7 +163,8 @@ class ParallelTest extends TestCase
             ->method('kill');
         $parallel = (new Parallel($runner))
             ->schedule(static function() {})
-            ->schedule(static function() {})();
+            ->schedule(static function() {})
+            ->start();
 
         $this->assertNull($parallel->kill());
     }
@@ -177,7 +180,8 @@ class ParallelTest extends TestCase
             })
             ->schedule(static function() {
                 \sleep(5);
-            })();
+            })
+            ->start();
         $this->assertNull($parallel->kill());
 
         try {

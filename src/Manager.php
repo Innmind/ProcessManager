@@ -5,7 +5,7 @@ namespace Innmind\ProcessManager;
 
 interface Manager
 {
-    public function __invoke(): self;
+    public function start(): self;
 
     /**
      * @param callable(): void $callable

@@ -39,7 +39,7 @@ final class Pool implements Manager
         $this->processes = Sequence::of();
     }
 
-    public function __invoke(): Manager
+    public function start(): Manager
     {
         $buffer = new Buffer($this->size, $this->run, $this->sockets);
         $self = clone $this;

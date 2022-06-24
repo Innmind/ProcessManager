@@ -63,7 +63,7 @@ class PoolTest extends TestCase
             ->expects($this->never())
             ->method('watch');
 
-        $pool2 = $pool();
+        $pool2 = $pool->start();
 
         $this->assertInstanceOf(Pool::class, $pool2);
         $this->assertNotSame($pool2, $pool);
@@ -87,7 +87,8 @@ class PoolTest extends TestCase
             })
             ->schedule(static function() {
                 \sleep(3);
-            })()
+            })
+            ->start()
             ->wait();
         $delta = \time() - $start;
 
@@ -114,7 +115,8 @@ class PoolTest extends TestCase
             })
             ->schedule(static function() {
                 \sleep(3);
-            })()
+            })
+            ->start()
             ->wait();
         $delta = \time() - $start;
 
@@ -154,7 +156,8 @@ class PoolTest extends TestCase
             })
             ->schedule(static function() {
                 \sleep(2);
-            })()
+            })
+            ->start()
             ->wait();
         $delta = \time() - $start;
 
@@ -177,7 +180,8 @@ class PoolTest extends TestCase
             })
             ->schedule(static function() {
                 \sleep(3);
-            })()
+            })
+            ->start()
             ->wait();
         $delta = \time() - $start;
 
@@ -226,7 +230,8 @@ class PoolTest extends TestCase
                 })
                 ->schedule(static function() {
                     \sleep(30);
-                })()
+                })
+                ->start()
                 ->wait();
         } finally {
             $this->assertGreaterThanOrEqual(5, \time() - $start);
@@ -261,7 +266,8 @@ class PoolTest extends TestCase
             ->method('kill');
         $parallel = (new Pool(2, $runner, $sockets))
             ->schedule(static function() {})
-            ->schedule(static function() {})();
+            ->schedule(static function() {})
+            ->start();
 
         $this->assertNull($parallel->kill());
     }
@@ -277,7 +283,8 @@ class PoolTest extends TestCase
             })
             ->schedule(static function() {
                 \sleep(5);
-            })();
+            })
+            ->start();
         $this->assertNull($parallel->kill());
 
         try {
