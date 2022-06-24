@@ -15,7 +15,7 @@ class KillOnErrorTest extends TestCase
     {
         $this->assertInstanceOf(
             Manager::class,
-            new KillOnError($this->createMock(Manager::class))
+            new KillOnError($this->createMock(Manager::class)),
         );
     }
 

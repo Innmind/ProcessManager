@@ -23,7 +23,7 @@ class ParallelTest extends TestCase
     {
         $this->assertInstanceOf(
             Manager::class,
-            new Parallel($this->createMock(Runner::class))
+            new Parallel($this->createMock(Runner::class)),
         );
     }
 
@@ -31,7 +31,7 @@ class ParallelTest extends TestCase
     {
         $parallel = new Parallel(new SubProcess(new Generic(
             $this->createMock(Clock::class),
-            $this->createMock(Halt::class)
+            $this->createMock(Halt::class),
         )));
 
         $parallel2 = $parallel->schedule(static function() {});
@@ -43,7 +43,7 @@ class ParallelTest extends TestCase
     public function testInvokationWithoutScheduledCallables()
     {
         $parallel = new Parallel(
-            $runner = $this->createMock(Runner::class)
+            $runner = $this->createMock(Runner::class),
         );
         $runner
             ->expects($this->never())
@@ -79,7 +79,7 @@ class ParallelTest extends TestCase
         $start = \time();
         $parallel = (new Parallel(new SubProcess(new Generic(
             $this->createMock(Clock::class),
-            $this->createMock(Halt::class)
+            $this->createMock(Halt::class),
         ))))
             ->schedule(static function() {
                 \sleep(10);
@@ -98,7 +98,7 @@ class ParallelTest extends TestCase
     {
         $parallel = new Parallel(new SubProcess(new Generic(
             $this->createMock(Clock::class),
-            $this->createMock(Halt::class)
+            $this->createMock(Halt::class),
         )));
         $parallel = $parallel->schedule(static function() {
             \sleep(1);
@@ -117,7 +117,7 @@ class ParallelTest extends TestCase
             $start = \time();
             (new Parallel(new SubProcess(new Generic(
                 $this->createMock(Clock::class),
-                $this->createMock(Halt::class)
+                $this->createMock(Halt::class),
             ))))
                 ->schedule(static function() {
                     \sleep(10);
@@ -176,7 +176,7 @@ class ParallelTest extends TestCase
         $start = \time();
         $parallel = (new Parallel(new SubProcess(new Generic(
             $this->createMock(Clock::class),
-            $this->createMock(Halt::class)
+            $this->createMock(Halt::class),
         ))))
             ->schedule(static function() {
                 \sleep(10);

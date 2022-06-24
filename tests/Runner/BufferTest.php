@@ -32,7 +32,7 @@ class BufferTest extends TestCase
                 1,
                 $this->createMock(Runner::class),
                 $this->createMock(Sockets::class),
-            )
+            ),
         );
     }
 

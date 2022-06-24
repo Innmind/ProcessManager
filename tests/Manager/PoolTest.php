@@ -35,7 +35,7 @@ class PoolTest extends TestCase
                 3,
                 $this->createMock(Runner::class),
                 $this->createMock(Sockets::class),
-            )
+            ),
         );
     }
 
@@ -120,7 +120,7 @@ class PoolTest extends TestCase
         $start = \time();
         (new Pool(2, new SubProcess(new Generic(
             $this->createMock(Clock::class),
-            $this->createMock(Halt::class)
+            $this->createMock(Halt::class),
         )), $sockets))
             ->schedule(static function() {
                 \sleep(10);
@@ -152,7 +152,7 @@ class PoolTest extends TestCase
         $start = \time();
         (new Pool($size, new SubProcess(new Generic(
             $this->createMock(Clock::class),
-            $this->createMock(Halt::class)
+            $this->createMock(Halt::class),
         )), $sockets))
             ->schedule(static function() {
                 \sleep(2);
@@ -185,7 +185,7 @@ class PoolTest extends TestCase
         $start = \time();
         (new Pool(20, new SubProcess(new Generic(
             $this->createMock(Clock::class),
-            $this->createMock(Halt::class)
+            $this->createMock(Halt::class),
         )), $sockets))
             ->schedule(static function() {
                 \sleep(10);
@@ -208,7 +208,7 @@ class PoolTest extends TestCase
         $sockets = $this->createMock(Sockets::class);
         $pool = new Pool(3, new SubProcess(new Generic(
             $this->createMock(Clock::class),
-            $this->createMock(Halt::class)
+            $this->createMock(Halt::class),
         )), $sockets);
         $pool = $pool->schedule(static function() {
             \sleep(1);
@@ -233,7 +233,7 @@ class PoolTest extends TestCase
             $start = \time();
             (new Pool(2, new SubProcess(new Generic(
                 $this->createMock(Clock::class),
-                $this->createMock(Halt::class)
+                $this->createMock(Halt::class),
             )), $sockets))
                 ->schedule(static function() {
                     \sleep(10);
@@ -291,7 +291,7 @@ class PoolTest extends TestCase
         $start = \time();
         $parallel = (new Pool(2, new SubProcess(new Generic(
             $this->createMock(Clock::class),
-            $this->createMock(Halt::class)
+            $this->createMock(Halt::class),
         )), new Sockets\Unix))
             ->schedule(static function() {
                 \sleep(10);

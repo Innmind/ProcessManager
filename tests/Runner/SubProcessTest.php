@@ -19,7 +19,7 @@ class SubProcessTest extends TestCase
     {
         $this->assertInstanceOf(
             Runner::class,
-            new SubProcess($this->createMock(CurrentProcess::class))
+            new SubProcess($this->createMock(CurrentProcess::class)),
         );
     }
 
@@ -27,7 +27,7 @@ class SubProcessTest extends TestCase
     {
         $run = new SubProcess(new CurrentProcess\Generic(
             $this->createMock(Clock::class),
-            $this->createMock(Halt::class)
+            $this->createMock(Halt::class),
         ));
 
         $process = $run($fn = static function() {

@@ -26,11 +26,11 @@ class ForkTest extends TestCase
         $process = new Fork(
             new Generic(
                 $this->createMock(Clock::class),
-                $this->createMock(Halt::class)
+                $this->createMock(Halt::class),
             ),
             static function() {
                 \sleep(2);
-            }
+            },
         );
 
         $this->assertLessThan(1, \time() - $start);
@@ -47,13 +47,13 @@ class ForkTest extends TestCase
         $process = new Fork(
             new Generic(
                 $this->createMock(Clock::class),
-                $this->createMock(Halt::class)
+                $this->createMock(Halt::class),
             ),
             $fn = static function() {
                 \sleep(2);
 
                 throw new \Exception;
-            }
+            },
         );
 
         try {
@@ -70,11 +70,11 @@ class ForkTest extends TestCase
         $process = new Fork(
             new Generic(
                 $this->createMock(Clock::class),
-                $this->createMock(Halt::class)
+                $this->createMock(Halt::class),
             ),
             static function() {
                 \sleep(10);
-            }
+            },
         );
 
         $this->assertNull($process->kill());
