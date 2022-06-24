@@ -28,7 +28,7 @@ final class SubProcess implements Runner
 
     public function __invoke(callable $callable): Process
     {
-        $process = new Fork($this->process, $callable);
+        $process = Fork::start($this->process, $callable);
         $this->processes = ($this->processes)($process);
 
         return $process;

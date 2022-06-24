@@ -12,9 +12,14 @@ final class KillOnError implements Manager
 {
     private Manager $manager;
 
-    public function __construct(Manager $manager)
+    private function __construct(Manager $manager)
     {
         $this->manager = $manager;
+    }
+
+    public static function of(Manager $manager): self
+    {
+        return new self($manager);
     }
 
     public function start(): Running

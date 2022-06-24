@@ -24,7 +24,7 @@ final class Pool implements Running
      * @param int<1, max> $size
      * @param Sequence<callable(): void> $scheduled
      */
-    public function __construct(
+    private function __construct(
         int $size,
         Runner $runner,
         Sockets $sockets,
@@ -35,6 +35,19 @@ final class Pool implements Running
             ->take($size)
             ->map($this->buffer);
         $this->scheduled = $scheduled->drop($size);
+    }
+
+    /**
+     * @param int<1, max> $size
+     * @param Sequence<callable(): void> $scheduled
+     */
+    public static function start(
+        int $size,
+        Runner $runner,
+        Sockets $sockets,
+        Sequence $scheduled,
+    ): self {
+        return new self($size, $runner, $sockets, $scheduled);
     }
 
     public function wait(): void

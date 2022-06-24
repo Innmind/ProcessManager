@@ -23,7 +23,7 @@ final class Fork implements Process
     /**
      * @param callable(): void $callable
      */
-    public function __construct(CurrentProcess $process, callable $callable)
+    private function __construct(CurrentProcess $process, callable $callable)
     {
         $this->callable = \Closure::fromCallable($callable);
 
@@ -47,6 +47,14 @@ final class Fork implements Process
                     $side instanceof Child => $side,
                 },
             );
+    }
+
+    /**
+     * @param callable(): void $callable
+     */
+    public static function start(CurrentProcess $process, callable $callable): self
+    {
+        return new self($process, $callable);
     }
 
     public function running(): bool

@@ -14,7 +14,7 @@ class SynchronousTest extends TestCase
     public function testInterface()
     {
         $start = \time();
-        $process = new Synchronous(static function() {
+        $process = Synchronous::run(static function() {
             \sleep(1);
         });
 

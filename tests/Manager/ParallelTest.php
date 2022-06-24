@@ -23,13 +23,13 @@ class ParallelTest extends TestCase
     {
         $this->assertInstanceOf(
             Manager::class,
-            new Parallel($this->createMock(Runner::class)),
+            Parallel::of($this->createMock(Runner::class)),
         );
     }
 
     public function testSchedule()
     {
-        $parallel = new Parallel(new SubProcess(Generic::of(
+        $parallel = Parallel::of(new SubProcess(Generic::of(
             $this->createMock(Halt::class),
         )));
 
@@ -41,7 +41,7 @@ class ParallelTest extends TestCase
 
     public function testInvokationWithoutScheduledCallables()
     {
-        $parallel = new Parallel(
+        $parallel = Parallel::of(
             $runner = $this->createMock(Runner::class),
         );
         $runner
@@ -55,7 +55,7 @@ class ParallelTest extends TestCase
 
     public function testInvokation()
     {
-        $parallel = new Parallel(new SameProcess);
+        $parallel = Parallel::of(new SameProcess);
         $start = \time();
         $parallel = $parallel->schedule(static function() {
             \sleep(1);
@@ -75,9 +75,9 @@ class ParallelTest extends TestCase
     public function testParallelInvokation()
     {
         $start = \time();
-        $parallel = (new Parallel(new SubProcess(Generic::of(
+        $parallel = Parallel::of(new SubProcess(Generic::of(
             $this->createMock(Halt::class),
-        ))))
+        )))
             ->schedule(static function() {
                 \sleep(10);
             })
@@ -98,9 +98,9 @@ class ParallelTest extends TestCase
 
         try {
             $start = \time();
-            (new Parallel(new SubProcess(Generic::of(
+            Parallel::of(new SubProcess(Generic::of(
                 $this->createMock(Halt::class),
-            ))))
+            )))
                 ->schedule(static function() {
                     \sleep(10);
                 })
@@ -147,7 +147,7 @@ class ParallelTest extends TestCase
         $process2
             ->expects($this->once())
             ->method('kill');
-        $parallel = (new Parallel($runner))
+        $parallel = Parallel::of($runner)
             ->schedule(static function() {})
             ->schedule(static function() {})
             ->start();
@@ -158,9 +158,9 @@ class ParallelTest extends TestCase
     public function testRealKill()
     {
         $start = \time();
-        $parallel = (new Parallel(new SubProcess(Generic::of(
+        $parallel = Parallel::of(new SubProcess(Generic::of(
             $this->createMock(Halt::class),
-        ))))
+        )))
             ->schedule(static function() {
                 \sleep(10);
             })

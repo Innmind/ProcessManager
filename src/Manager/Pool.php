@@ -24,19 +24,37 @@ final class Pool implements Manager
 
     /**
      * @param int<1, max> $size
+     * @param Sequence<callable(): void> $scheduled
      */
-    public function __construct(int $size, Runner $runner, Sockets $sockets)
-    {
+    private function __construct(
+        int $size,
+        Runner $runner,
+        Sockets $sockets,
+        Sequence $scheduled,
+    ) {
         $this->size = $size;
         $this->runner = $runner;
         $this->sockets = $sockets;
+        $this->scheduled = $scheduled;
+    }
+
+    /**
+     * @param int<1, max> $size
+     */
+    public static function of(
+        int $size,
+        Runner $runner,
+        Sockets $sockets,
+    ): self {
         /** @var Sequence<callable(): void> */
-        $this->scheduled = Sequence::of();
+        $scheduled = Sequence::of();
+
+        return new self($size, $runner, $sockets, $scheduled);
     }
 
     public function start(): Running
     {
-        return new Running\Pool(
+        return Running\Pool::start(
             $this->size,
             $this->runner,
             $this->sockets,
@@ -46,9 +64,11 @@ final class Pool implements Manager
 
     public function schedule(callable $callable): Manager
     {
-        $self = clone $this;
-        $self->scheduled = ($self->scheduled)($callable);
-
-        return $self;
+        return new self(
+            $this->size,
+            $this->runner,
+            $this->sockets,
+            ($this->scheduled)($callable),
+        );
     }
 }

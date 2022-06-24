@@ -10,9 +10,17 @@ final class Synchronous implements Process
     /**
      * @param callable(): void $callable
      */
-    public function __construct(callable $callable)
+    private function __construct(callable $callable)
     {
         $callable();
+    }
+
+    /**
+     * @param callable(): void $callable
+     */
+    public static function run(callable $callable): self
+    {
+        return new self($callable);
     }
 
     public function running(): bool

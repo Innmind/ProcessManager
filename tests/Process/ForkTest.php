@@ -23,7 +23,7 @@ class ForkTest extends TestCase
     public function testInterface()
     {
         $start = \time();
-        $process = new Fork(
+        $process = Fork::start(
             Generic::of(
                 $this->createMock(Halt::class),
             ),
@@ -43,7 +43,7 @@ class ForkTest extends TestCase
 
     public function testThrowWhenCallableFails()
     {
-        $process = new Fork(
+        $process = Fork::start(
             Generic::of(
                 $this->createMock(Halt::class),
             ),
@@ -65,7 +65,7 @@ class ForkTest extends TestCase
 
     public function testKill()
     {
-        $process = new Fork(
+        $process = Fork::start(
             Generic::of(
                 $this->createMock(Halt::class),
             ),
@@ -86,7 +86,7 @@ class ForkTest extends TestCase
             ->willReturn(Either::left(new ForkFailed));
 
         try {
-            new Fork($process, $fn = static function() {});
+            Fork::start($process, $fn = static function() {});
 
             $this->fail('it should throw');
         } catch (CouldNotFork $e) {

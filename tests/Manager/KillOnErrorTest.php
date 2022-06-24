@@ -16,7 +16,7 @@ class KillOnErrorTest extends TestCase
     {
         $this->assertInstanceOf(
             Manager::class,
-            new KillOnError($this->createMock(Manager::class)),
+            KillOnError::of($this->createMock(Manager::class)),
         );
     }
 
@@ -28,7 +28,7 @@ class KillOnErrorTest extends TestCase
             ->expects($this->once())
             ->method('schedule')
             ->with($fn);
-        $manager = new KillOnError($inner);
+        $manager = KillOnError::of($inner);
         $manager2 = $manager->schedule($fn);
 
         $this->assertInstanceOf(KillOnError::class, $manager2);
@@ -41,7 +41,7 @@ class KillOnErrorTest extends TestCase
         $inner
             ->expects($this->once())
             ->method('start');
-        $manager = new KillOnError($inner);
+        $manager = KillOnError::of($inner);
         $running = $manager->start();
 
         $this->assertInstanceOf(Running\KillOnError::class, $running);

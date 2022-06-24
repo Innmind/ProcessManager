@@ -12,6 +12,6 @@ final class SameProcess implements Runner
 {
     public function __invoke(callable $callable): Process
     {
-        return new Process\Synchronous($callable);
+        return Process\Synchronous::run($callable);
     }
 }

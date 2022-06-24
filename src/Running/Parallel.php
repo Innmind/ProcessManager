@@ -17,9 +17,17 @@ final class Parallel implements Running
     /**
      * @param Sequence<Process> $processes
      */
-    public function __construct(Sequence $processes)
+    private function __construct(Sequence $processes)
     {
         $this->processes = $processes;
+    }
+
+    /**
+     * @param Sequence<Process> $processes
+     */
+    public static function start(Sequence $processes): self
+    {
+        return new self($processes);
     }
 
     public function wait(): void
