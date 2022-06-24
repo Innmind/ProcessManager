@@ -7,6 +7,9 @@ use Innmind\ProcessManager\Process;
 
 final class Synchronous implements Process
 {
+    /**
+     * @param callable(): void $callable
+     */
     public function __construct(callable $callable)
     {
         $callable();

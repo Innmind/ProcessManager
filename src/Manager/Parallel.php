@@ -13,7 +13,7 @@ use Innmind\Immutable\Sequence;
 final class Parallel implements Manager
 {
     private Runner $run;
-    /** @var Sequence<callable> */
+    /** @var Sequence<callable(): void> */
     private Sequence $scheduled;
     /** @var Sequence<Process> */
     private Sequence $processes;
@@ -21,7 +21,7 @@ final class Parallel implements Manager
     public function __construct(Runner $run)
     {
         $this->run = $run;
-        /** @var Sequence<callable> */
+        /** @var Sequence<callable(): void> */
         $this->scheduled = Sequence::of();
         /** @var Sequence<Process> */
         $this->processes = Sequence::of();

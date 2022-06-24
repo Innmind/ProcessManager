@@ -20,6 +20,9 @@ final class Fork implements Process
     private \Closure $callable;
     private Child $child;
 
+    /**
+     * @param callable(): void $callable
+     */
     public function __construct(CurrentProcess $process, callable $callable)
     {
         $this->callable = \Closure::fromCallable($callable);

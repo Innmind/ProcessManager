@@ -20,7 +20,7 @@ final class Pool implements Manager
     private Runner $run;
     private Sockets $sockets;
     private ?Buffer $buffer = null;
-    /** @var Sequence<callable> */
+    /** @var Sequence<callable(): void> */
     private Sequence $scheduled;
     /** @var Sequence<Process> */
     private Sequence $processes;
@@ -33,7 +33,7 @@ final class Pool implements Manager
         $this->size = $size;
         $this->run = $run;
         $this->sockets = $sockets;
-        /** @var Sequence<callable> */
+        /** @var Sequence<callable(): void> */
         $this->scheduled = Sequence::of();
         /** @var Sequence<Process> */
         $this->processes = Sequence::of();

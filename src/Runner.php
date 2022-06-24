@@ -5,5 +5,8 @@ namespace Innmind\ProcessManager;
 
 interface Runner
 {
+    /**
+     * @param callable(): void $callable
+     */
     public function __invoke(callable $callable): Process;
 }

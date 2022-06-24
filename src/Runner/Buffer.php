@@ -54,7 +54,7 @@ final class Buffer implements Runner
     }
 
     /**
-     * @return array{0: callable, 1: Bidirectional}
+     * @return array{0: callable(): void, 1: Bidirectional}
      */
     private function entangle(callable $callable): array
     {
