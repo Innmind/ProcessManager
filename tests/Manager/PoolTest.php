@@ -20,6 +20,7 @@ use Innmind\OperatingSystem\{
 use Innmind\Stream\Watch\Select;
 use Innmind\TimeContinuum\Earth\ElapsedPeriod;
 use Innmind\TimeWarp\Halt;
+use Innmind\Immutable\Either;
 use PHPUnit\Framework\TestCase;
 
 class PoolTest extends TestCase
@@ -64,7 +65,10 @@ class PoolTest extends TestCase
             ->expects($this->never())
             ->method('watch');
 
-        $running = $pool->start();
+        $running = $pool->start()->match(
+            static fn($running) => $running,
+            static fn() => null,
+        );
 
         $this->assertInstanceOf(Running::class, $running);
     }
@@ -89,7 +93,10 @@ class PoolTest extends TestCase
                 \sleep(3);
             })
             ->start()
-            ->wait();
+            ->match(
+                static fn($running) => $running->wait(),
+                static fn() => null,
+            );
         $delta = \time() - $start;
 
         $this->assertGreaterThanOrEqual(18, $delta);
@@ -117,7 +124,10 @@ class PoolTest extends TestCase
                 \sleep(3);
             })
             ->start()
-            ->wait();
+            ->match(
+                static fn($running) => $running->wait(),
+                static fn() => null,
+            );
         $delta = \time() - $start;
 
         $this->assertGreaterThanOrEqual(10, $delta);
@@ -158,7 +168,10 @@ class PoolTest extends TestCase
                 \sleep(2);
             })
             ->start()
-            ->wait();
+            ->match(
+                static fn($running) => $running->wait(),
+                static fn() => null,
+            );
         $delta = \time() - $start;
 
         $this->assertGreaterThanOrEqual($expected, $delta);
@@ -182,7 +195,10 @@ class PoolTest extends TestCase
                 \sleep(3);
             })
             ->start()
-            ->wait();
+            ->match(
+                static fn($running) => $running->wait(),
+                static fn() => null,
+            );
         $delta = \time() - $start;
 
         $this->assertGreaterThanOrEqual(10, $delta);
@@ -217,7 +233,10 @@ class PoolTest extends TestCase
                     \sleep(30);
                 })
                 ->start()
-                ->wait();
+                ->match(
+                    static fn($running) => $running->wait(),
+                    static fn() => null,
+                );
         } finally {
             $this->assertGreaterThanOrEqual(5, \time() - $start);
             $this->assertLessThanOrEqual(7, \time() - $start);
@@ -232,8 +251,8 @@ class PoolTest extends TestCase
             ->expects($this->exactly(2))
             ->method('__invoke')
             ->will($this->onConsecutiveCalls(
-                $process1 = $this->createMock(Process::class),
-                $process2 = $this->createMock(Process::class),
+                Either::right($process1 = $this->createMock(Process::class)),
+                Either::right($process2 = $this->createMock(Process::class)),
             ));
         $process1
             ->expects($this->once())
@@ -252,7 +271,11 @@ class PoolTest extends TestCase
         $parallel = Pool::of(2, $runner, $sockets)
             ->schedule(static function() {})
             ->schedule(static function() {})
-            ->start();
+            ->start()
+            ->match(
+                static fn($running) => $running,
+                static fn() => null,
+            );
 
         $this->assertNull($parallel->kill());
     }
@@ -269,7 +292,11 @@ class PoolTest extends TestCase
             ->schedule(static function() {
                 \sleep(5);
             })
-            ->start();
+            ->start()
+            ->match(
+                static fn($running) => $running,
+                static fn() => null,
+            );
         $this->assertNull($parallel->kill());
 
         try {

@@ -7,8 +7,12 @@ use Innmind\ProcessManager\{
     Manager,
     Runner,
     Running,
+    Process,
 };
-use Innmind\Immutable\Sequence;
+use Innmind\Immutable\{
+    Sequence,
+    Either,
+};
 
 final class Parallel implements Manager
 {
@@ -33,15 +37,38 @@ final class Parallel implements Manager
         return new self($runner, $scheduled);
     }
 
-    public function start(): Running
+    public function start(): Either
     {
-        return Running\Parallel::start($this->scheduled->map(
-            fn($callable) => ($this->run)($callable),
-        ));
+        /** @var Either<Process\InitFailed, Sequence<Process>> */
+        $started = Either::right(Sequence::of());
+
+        /** @var Either<Process\InitFailed, Running> */
+        return $this
+            ->scheduled
+            ->reduce(
+                $started,
+                $this->startProcess(...),
+            )
+            ->map(Running\Parallel::start(...));
     }
 
     public function schedule(callable $callable): Manager
     {
         return new self($this->run, ($this->scheduled)($callable));
+    }
+
+    /**
+     * @param Either<Process\InitFailed, Sequence<Process>> $started
+     * @param callable(): void $callable
+     *
+     * @return Either<Process\InitFailed, Sequence<Process>>
+     */
+    private function startProcess(Either $started, callable $callable): Either
+    {
+        return $started->flatMap(
+            fn($processes) => ($this->run)($callable)->map(
+                static fn($process) => ($processes)($process),
+            ),
+        );
     }
 }

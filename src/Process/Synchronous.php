@@ -4,6 +4,7 @@ declare(strict_types = 1);
 namespace Innmind\ProcessManager\Process;
 
 use Innmind\ProcessManager\Process;
+use Innmind\Immutable\Either;
 
 final class Synchronous implements Process
 {
@@ -17,10 +18,18 @@ final class Synchronous implements Process
 
     /**
      * @param callable(): void $callable
+     *
+     * @return Either<InitFailed, Process>
      */
-    public static function run(callable $callable): self
+    public static function run(callable $callable): Either
     {
-        return new self($callable);
+        try {
+            /** @var Either<InitFailed, Process> */
+            return Either::right(new self($callable));
+        } catch (\Throwable $e) {
+            /** @var Either<InitFailed, Process> */
+            return Either::left(new InitFailed);
+        }
     }
 
     public function running(): bool

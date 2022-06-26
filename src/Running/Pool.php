@@ -10,7 +10,10 @@ use Innmind\ProcessManager\{
     Runner\Buffer,
 };
 use Innmind\OperatingSystem\Sockets;
-use Innmind\Immutable\Sequence;
+use Innmind\Immutable\{
+    Sequence,
+    Either,
+};
 
 final class Pool implements Running
 {
@@ -21,40 +24,52 @@ final class Pool implements Running
     private Sequence $processes;
 
     /**
-     * @param int<1, max> $size
+     * @param Sequence<Process> $processes
      * @param Sequence<callable(): void> $scheduled
      */
     private function __construct(
-        int $size,
-        Runner $runner,
-        Sockets $sockets,
+        Buffer $buffer,
+        Sequence $processes,
         Sequence $scheduled,
     ) {
-        $this->buffer = new Buffer($size, $runner, $sockets);
-        $this->processes = $scheduled
-            ->take($size)
-            ->map($this->buffer);
-        $this->scheduled = $scheduled->drop($size);
+        $this->buffer = $buffer;
+        $this->processes = $processes;
+        $this->scheduled = $scheduled;
     }
 
     /**
      * @param int<1, max> $size
      * @param Sequence<callable(): void> $scheduled
+     *
+     * @return Either<Process\InitFailed, Running>
      */
     public static function start(
         int $size,
         Runner $runner,
         Sockets $sockets,
         Sequence $scheduled,
-    ): self {
-        return new self($size, $runner, $sockets, $scheduled);
+    ): Either {
+        $buffer = new Buffer($size, $runner, $sockets);
+
+        /** @var Either<Process\InitFailed, Running> */
+        return self::tryStart($buffer, $scheduled->take($size))->map(
+            static fn($processes) => new self(
+                $buffer,
+                $processes,
+                $scheduled->drop($size),
+            ),
+        );
     }
 
     public function wait(): void
     {
+        $processes = self::tryStart($this->buffer, $this->scheduled)->match(
+            static fn($processes) => $processes,
+            static fn() => throw new \RuntimeException,
+        );
         $_ = $this
             ->processes
-            ->append($this->scheduled->map($this->buffer))
+            ->append($processes)
             ->foreach(static fn($process) => $process->wait());
     }
 
@@ -64,5 +79,29 @@ final class Pool implements Running
             ->processes
             ->filter(static fn($process) => $process->running())
             ->foreach(static fn($process) => $process->kill());
+    }
+
+    /**
+     * @param Sequence<callable(): void> $scheduled
+     *
+     * @return Either<Process\InitFailed, Sequence<Process>>
+     */
+    private static function tryStart(Buffer $buffer, Sequence $scheduled): Either
+    {
+        /** @var Either<Process\InitFailed, Sequence<Process>> */
+        $started = Either::right(Sequence::of());
+
+        /**
+         * @psalm-suppress MixedArgumentTypeCoercion
+         * @var Either<Process\InitFailed, Sequence<Process>>
+         */
+        return $scheduled->reduce(
+            $started,
+            static fn(Either $started, callable $callable): Either => $started->flatMap(
+                static fn(Sequence $processes) => $buffer($callable)->map(
+                    static fn(Process $process) => ($processes)($process),
+                ),
+            ),
+        );
     }
 }

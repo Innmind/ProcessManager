@@ -30,7 +30,10 @@ class SubProcessTest extends TestCase
 
         $process = $run($fn = static function() {
             \sleep(1);
-        });
+        })->match(
+            static fn($process) => $process,
+            static fn() => null,
+        );
 
         $this->assertInstanceOf(Fork::class, $process);
         $this->assertNotSame($process, $run($fn));

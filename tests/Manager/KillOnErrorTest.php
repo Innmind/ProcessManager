@@ -8,6 +8,7 @@ use Innmind\ProcessManager\{
     Manager,
     Running,
 };
+use Innmind\Immutable\Either;
 use PHPUnit\Framework\TestCase;
 
 class KillOnErrorTest extends TestCase
@@ -40,9 +41,13 @@ class KillOnErrorTest extends TestCase
         $inner = $this->createMock(Manager::class);
         $inner
             ->expects($this->once())
-            ->method('start');
+            ->method('start')
+            ->willReturn(Either::right($this->createMock(Running::class)));
         $manager = KillOnError::of($inner);
-        $running = $manager->start();
+        $running = $manager->start()->match(
+            static fn($running) => $running,
+            static fn() => null,
+        );
 
         $this->assertInstanceOf(Running\KillOnError::class, $running);
     }

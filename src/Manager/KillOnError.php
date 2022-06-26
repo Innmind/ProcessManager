@@ -6,7 +6,9 @@ namespace Innmind\ProcessManager\Manager;
 use Innmind\ProcessManager\{
     Manager,
     Running,
+    Process,
 };
+use Innmind\Immutable\Either;
 
 final class KillOnError implements Manager
 {
@@ -22,9 +24,10 @@ final class KillOnError implements Manager
         return new self($manager);
     }
 
-    public function start(): Running
+    public function start(): Either
     {
-        return new Running\KillOnError($this->manager->start());
+        /** @var Either<Process\InitFailed, Running> */
+        return $this->manager->start()->map(Running\KillOnError::of(...));
     }
 
     public function schedule(callable $callable): Manager

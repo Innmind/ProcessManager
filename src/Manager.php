@@ -3,9 +3,14 @@ declare(strict_types = 1);
 
 namespace Innmind\ProcessManager;
 
+use Innmind\Immutable\Either;
+
 interface Manager
 {
-    public function start(): Running;
+    /**
+     * @return Either<Process\InitFailed, Running>
+     */
+    public function start(): Either;
 
     /**
      * @param callable(): void $callable

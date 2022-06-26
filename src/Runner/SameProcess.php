@@ -7,10 +7,11 @@ use Innmind\ProcessManager\{
     Runner,
     Process,
 };
+use Innmind\Immutable\Either;
 
 final class SameProcess implements Runner
 {
-    public function __invoke(callable $callable): Process
+    public function __invoke(callable $callable): Either
     {
         return Process\Synchronous::run($callable);
     }

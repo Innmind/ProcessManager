@@ -41,7 +41,10 @@ class BufferTest extends TestCase
 
         $process = $buffer(static function(): void {
             \sleep(10);
-        });
+        })->match(
+            static fn($process) => $process,
+            static fn() => null,
+        );
 
         $this->assertInstanceOf(Fork::class, $process);
         $this->assertLessThanOrEqual(1, \time() - $start);
@@ -64,7 +67,10 @@ class BufferTest extends TestCase
 
         $buffer($sleep);
         $buffer($sleep);
-        $process = $buffer($sleep);
+        $process = $buffer($sleep)->match(
+            static fn($process) => $process,
+            static fn() => null,
+        );
 
         $this->assertInstanceOf(Fork::class, $process);
         $this->assertGreaterThanOrEqual(5, \time() - $start);

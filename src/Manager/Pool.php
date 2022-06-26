@@ -11,7 +11,10 @@ use Innmind\ProcessManager\{
     Running,
 };
 use Innmind\OperatingSystem\Sockets;
-use Innmind\Immutable\Sequence;
+use Innmind\Immutable\{
+    Sequence,
+    Either,
+};
 
 final class Pool implements Manager
 {
@@ -52,7 +55,7 @@ final class Pool implements Manager
         return new self($size, $runner, $sockets, $scheduled);
     }
 
-    public function start(): Running
+    public function start(): Either
     {
         return Running\Pool::start(
             $this->size,

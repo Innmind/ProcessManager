@@ -7,7 +7,6 @@ use Innmind\ProcessManager\{
     Process\Fork,
     Process,
     Exception\SubProcessFailed,
-    Exception\CouldNotFork,
 };
 use Innmind\OperatingSystem\{
     CurrentProcess\Generic,
@@ -30,6 +29,9 @@ class ForkTest extends TestCase
             static function() {
                 \sleep(2);
             },
+        )->match(
+            static fn($process) => $process,
+            static fn() => null,
         );
 
         $this->assertLessThan(1, \time() - $start);
@@ -52,6 +54,9 @@ class ForkTest extends TestCase
 
                 throw new \Exception;
             },
+        )->match(
+            static fn($process) => $process,
+            static fn() => null,
         );
 
         try {
@@ -72,12 +77,15 @@ class ForkTest extends TestCase
             static function() {
                 \sleep(10);
             },
+        )->match(
+            static fn($process) => $process,
+            static fn() => null,
         );
 
         $this->assertNull($process->kill());
     }
 
-    public function testThrowWhenForkFailed()
+    public function testReturnErrorWhenForkFailed()
     {
         $process = $this->createMock(CurrentProcess::class);
         $process
@@ -85,12 +93,11 @@ class ForkTest extends TestCase
             ->method('fork')
             ->willReturn(Either::left(new ForkFailed));
 
-        try {
-            Fork::start($process, $fn = static function() {});
+        $error = Fork::start($process, $fn = static function() {})->match(
+            static fn() => null,
+            static fn($e) => $e,
+        );
 
-            $this->fail('it should throw');
-        } catch (CouldNotFork $e) {
-            $this->assertSame($fn, $e->callable());
-        }
+        $this->assertInstanceOf(Process\InitFailed::class, $error);
     }
 }

@@ -9,9 +9,14 @@ final class KillOnError implements Running
 {
     private Running $running;
 
-    public function __construct(Running $running)
+    private function __construct(Running $running)
     {
         $this->running = $running;
+    }
+
+    public static function of(Running $running): self
+    {
+        return new self($running);
     }
 
     public function wait(): void

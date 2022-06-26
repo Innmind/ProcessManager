@@ -10,7 +10,10 @@ use Innmind\ProcessManager\{
 };
 use Innmind\OperatingSystem\CurrentProcess;
 use Innmind\Signals\Signal;
-use Innmind\Immutable\Set;
+use Innmind\Immutable\{
+    Set,
+    Either,
+};
 
 final class SubProcess implements Runner
 {
@@ -26,12 +29,14 @@ final class SubProcess implements Runner
         $this->registerSignalHandlers($process);
     }
 
-    public function __invoke(callable $callable): Process
+    public function __invoke(callable $callable): Either
     {
-        $process = Fork::start($this->process, $callable);
-        $this->processes = ($this->processes)($process);
+        /** @var Either<Process\InitFailed, Process> */
+        return Fork::start($this->process, $callable)->map(function($process) {
+            $this->processes = ($this->processes)($process);
 
-        return $process;
+            return $process;
+        });
     }
 
     private function registerSignalHandlers(CurrentProcess $process): void

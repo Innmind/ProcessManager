@@ -16,7 +16,10 @@ class SynchronousTest extends TestCase
         $start = \time();
         $process = Synchronous::run(static function() {
             \sleep(1);
-        });
+        })->match(
+            static fn($process) => $process,
+            static fn() => null,
+        );
 
         $this->assertGreaterThanOrEqual(1, \time() - $start);
         $this->assertInstanceOf(Process::class, $process);

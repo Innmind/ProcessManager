@@ -18,6 +18,7 @@ use Innmind\Immutable\{
     Map,
     Str,
     Set,
+    Either,
 };
 
 final class Buffer implements Runner
@@ -41,15 +42,17 @@ final class Buffer implements Runner
         $this->running = Map::of();
     }
 
-    public function __invoke(callable $callable): Process
+    public function __invoke(callable $callable): Either
     {
         $this->buffer();
 
         [$callable, $beacon] = $this->entangle($callable);
-        $process = ($this->run)($callable);
-        $this->running = ($this->running)($beacon, $process);
 
-        return $process;
+        return ($this->run)($callable)->map(function($process) use ($beacon) {
+            $this->running = ($this->running)($beacon, $process);
+
+            return $process;
+        });
     }
 
     /**

@@ -15,6 +15,7 @@ use Innmind\ProcessManager\{
 };
 use Innmind\OperatingSystem\CurrentProcess\Generic;
 use Innmind\TimeWarp\Halt;
+use Innmind\Immutable\Either;
 use PHPUnit\Framework\TestCase;
 
 class ParallelTest extends TestCase
@@ -48,7 +49,10 @@ class ParallelTest extends TestCase
             ->expects($this->never())
             ->method('__invoke');
 
-        $running = $parallel->start();
+        $running = $parallel->start()->match(
+            static fn($running) => $running,
+            static fn() => null,
+        );
 
         $this->assertInstanceOf(Running::class, $running);
     }
@@ -66,7 +70,10 @@ class ParallelTest extends TestCase
 
         $this->assertLessThan(2, \time() - $start);
 
-        $parallel = $parallel->start();
+        $parallel = $parallel->start()->match(
+            static fn($running) => $running,
+            static fn() => null,
+        );
 
         $this->assertGreaterThanOrEqual(2, \time() - $start);
         $this->assertNull($parallel->wait());
@@ -85,7 +92,10 @@ class ParallelTest extends TestCase
                 \sleep(5);
             })
             ->start()
-            ->wait();
+            ->match(
+                static fn($running) => $running->wait(),
+                static fn() => null,
+            );
         $delta = \time() - $start;
 
         $this->assertGreaterThanOrEqual(10, $delta);
@@ -114,7 +124,10 @@ class ParallelTest extends TestCase
                     \sleep(30);
                 })
                 ->start()
-                ->wait();
+                ->match(
+                    static fn($running) => $running->wait(),
+                    static fn() => null,
+                );
         } finally {
             $this->assertGreaterThanOrEqual(5, \time() - $start);
             $this->assertLessThanOrEqual(10, \time() - $start);
@@ -130,8 +143,8 @@ class ParallelTest extends TestCase
             ->expects($this->exactly(2))
             ->method('__invoke')
             ->will($this->onConsecutiveCalls(
-                $process1 = $this->createMock(Process::class),
-                $process2 = $this->createMock(Process::class),
+                Either::right($process1 = $this->createMock(Process::class)),
+                Either::right($process2 = $this->createMock(Process::class)),
             ));
         $process1
             ->expects($this->once())
@@ -150,7 +163,11 @@ class ParallelTest extends TestCase
         $parallel = Parallel::of($runner)
             ->schedule(static function() {})
             ->schedule(static function() {})
-            ->start();
+            ->start()
+            ->match(
+                static fn($running) => $running,
+                static fn() => null,
+            );
 
         $this->assertNull($parallel->kill());
     }
@@ -167,7 +184,11 @@ class ParallelTest extends TestCase
             ->schedule(static function() {
                 \sleep(5);
             })
-            ->start();
+            ->start()
+            ->match(
+                static fn($running) => $running,
+                static fn() => null,
+            );
         $this->assertNull($parallel->kill());
 
         try {

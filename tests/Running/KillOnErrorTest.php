@@ -17,7 +17,7 @@ class KillOnErrorTest extends TestCase
         $inner
             ->expects($this->once())
             ->method('wait');
-        $running = new KillOnError($inner);
+        $running = KillOnError::of($inner);
 
         $this->assertNull($running->wait());
     }
@@ -28,7 +28,7 @@ class KillOnErrorTest extends TestCase
         $inner
             ->expects($this->once())
             ->method('kill');
-        $running = new KillOnError($inner);
+        $running = KillOnError::of($inner);
 
         $this->assertNull($running->kill());
     }
@@ -43,7 +43,7 @@ class KillOnErrorTest extends TestCase
         $inner
             ->expects($this->once())
             ->method('kill');
-        $running = new KillOnError($inner);
+        $running = KillOnError::of($inner);
 
         try {
             $running->wait();

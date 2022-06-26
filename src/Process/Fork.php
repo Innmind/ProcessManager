@@ -5,7 +5,6 @@ namespace Innmind\ProcessManager\Process;
 
 use Innmind\ProcessManager\{
     Process,
-    Exception\CouldNotFork,
     Exception\SubProcessFailed,
 };
 use Innmind\OperatingSystem\{
@@ -14,6 +13,7 @@ use Innmind\OperatingSystem\{
     CurrentProcess\ForkFailed,
 };
 use Innmind\Signals\Signal;
+use Innmind\Immutable\Either;
 
 final class Fork implements Process
 {
@@ -23,38 +23,32 @@ final class Fork implements Process
     /**
      * @param callable(): void $callable
      */
-    private function __construct(CurrentProcess $process, callable $callable)
+    private function __construct(Child $child, callable $callable)
     {
         $this->callable = \Closure::fromCallable($callable);
-
-        /** @psalm-suppress PossiblyNullPropertyAssignmentValue */
-        $this->child = $process
-            ->fork()
-            ->match(
-                function() use ($process, $callable) {
-                    try {
-                        $this->registerSignalHandlers($process);
-
-                        $callable();
-
-                        exit(0);
-                    } catch (\Throwable $e) {
-                        exit(1);
-                    }
-                },
-                static fn($side) => match (true) {
-                    $side instanceof ForkFailed => throw new CouldNotFork($callable),
-                    $side instanceof Child => $side,
-                },
-            );
+        $this->child = $child;
     }
 
     /**
      * @param callable(): void $callable
+     *
+     * @return Either<InitFailed, self>
      */
-    public static function start(CurrentProcess $process, callable $callable): self
+    public static function start(CurrentProcess $process, callable $callable): Either
     {
-        return new self($process, $callable);
+        /**
+         * @psalm-suppress NoValue as self::execute never returns
+         * @var Either<InitFailed, self>
+         */
+        return $process
+            ->fork()
+            ->match(
+                static fn() => self::execute($process, $callable),
+                static fn($side) => match (true) {
+                    $side instanceof ForkFailed => Either::left(new InitFailed),
+                    $side instanceof Child => Either::right(new self($side, $callable)),
+                },
+            );
     }
 
     public function running(): bool
@@ -84,7 +78,7 @@ final class Fork implements Process
         return $this->child->id()->toInt();
     }
 
-    private function registerSignalHandlers(CurrentProcess $process): void
+    private static function registerSignalHandlers(CurrentProcess $process): void
     {
         $exit = static function(): void {
             exit(1);
@@ -94,5 +88,23 @@ final class Fork implements Process
         $process->signals()->listen(Signal::interrupt, $exit);
         $process->signals()->listen(Signal::abort, $exit);
         $process->signals()->listen(Signal::terminate, $exit);
+    }
+
+    /**
+     * @param callable(): void $callable
+     */
+    private static function execute(
+        CurrentProcess $process,
+        callable $callable,
+    ): never {
+        try {
+            self::registerSignalHandlers($process);
+
+            $callable();
+
+            exit(0);
+        } catch (\Throwable) {
+            exit(1);
+        }
     }
 }
