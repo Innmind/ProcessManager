@@ -20,7 +20,10 @@ use Innmind\ProcessManager\{
     Runner\SubProcess,
 };
 use Innmind\OperatingSystem\Factory;
-use Innmind\Immutable\Sequence;
+use Innmind\Immutable\{
+    Sequence,
+    Str,
+};
 use GuzzleHttp\Client;
 
 $urls = Sequence::strings(
@@ -32,7 +35,7 @@ $http = new Client;
 $os = Factory::buid();
 $runner = new SubProcess($os->process());
 $crawl = $urls->reduce(
-    new Parallel($runner),
+    Parallel::of($runner),
     static function(Parallel $parallel, string $url) use ($http): Parallel {
         return $parallel->schedule(static function() use ($http, $url): void {
             \file_put_contents(
@@ -42,29 +45,33 @@ $crawl = $urls->reduce(
         });
     }
 );
-$crawl = $crawl();
-echo 'These urls are being crawled in parallel: '.$urls->join(', ');
-$crawl->wait();
+$crawling = $crawl->start()->match(
+    static fn($crawling) => $crawling,
+    static fn() => throw new \RuntimeException('Failed to start crawlers'),
+);
+echo 'These urls are being crawled in parallel: '.Str::of(', ')->join($urls);
+$crawling->wait()->match(
+    static fn() => null, // finished
+    static fn() => throw new \RuntimeException('A process failed'),
+);
 ```
 
 This sample will crawl the 3 urls in parallel via sub processes.
 
 **Important**: with this code you cannot return values, if you want to return content to the parent process you need to implement IPC over socket or shared memory (this may be implemented in future versions).
 
-As you may have noticed `Parallel::__invoke()` return a new instance, this means that this code `$crawl() && $crawl->wait()` will not wait for the sub processes to finish. This behaviour is implemented so you can safely re-run a set a jobs, in other words you can do `$crawl()->wait() && $crawl()->wait()` (which will crawl each url twice).
-
 ### `Pool`
 
-`Pool` implements the same interface as `Parallel`, but you need to specify the maximum number of sub processes you want to allow, ie `new Pool(2, $runner)` will allow at most 2 sub processes in parallel.
+`Pool` implements the same interface as `Parallel`, but you need to specify the maximum number of sub processes you want to allow, ie `Pool::of(2, $runner, $sockets)` will allow at most 2 sub processes in parallel.
 
-**Important**: when you `invoke` your pool only the first `n` scheduled functions will be called, you absolutely need to call the `wait` method so the remaining functions are called.
+**Important**: when you start your pool only the first `n` scheduled functions will be called, you absolutely need to call the `wait` method so the remaining functions are called.
 
 Example:
 
 ```php
 use Innmind\ProcessManager\Manager\Pool;
 
-$pool = (new Pool(2, $runner, $os->sockets()))
+$pool = Pool::of(2, $runner, $os->sockets())
     ->schedule(function() {
         sleep(10);
     })
@@ -74,12 +81,18 @@ $pool = (new Pool(2, $runner, $os->sockets()))
     ->schedule(function() {
         sleep(60);
     });
-//no process started yet, same behaviour as Parallel
-$pool = $pool();
-//first two functions are started as sub processes
+// no process started yet, same behaviour as Parallel
+$running = $pool->start()->match(
+    static fn($running) => $running,
+    static fn() => throw new \RuntimeException,
+);
+// first two functions are started as sub processes
 /*
 do some code that last more than 10 seconds...
  */
-//third function still not started
-$pool->wait(); //this will run all the remaining functions
+// third function still not started
+$pool->wait()->match( // this will run all the remaining functions
+    static fn() => null, // finished
+    static fn() => throw new \RuntimeException,
+);
 ```
