@@ -11,11 +11,13 @@ use Innmind\ProcessManager\{
     Runner\SubProcess,
     Process,
     Running,
-    Exception\SubProcessFailed,
 };
 use Innmind\OperatingSystem\CurrentProcess\Generic;
 use Innmind\TimeWarp\Halt;
-use Innmind\Immutable\Either;
+use Innmind\Immutable\{
+    Either,
+    SideEffect,
+};
 use PHPUnit\Framework\TestCase;
 
 class ParallelTest extends TestCase
@@ -76,7 +78,10 @@ class ParallelTest extends TestCase
         );
 
         $this->assertGreaterThanOrEqual(2, \time() - $start);
-        $this->assertNull($parallel->wait());
+        $this->assertInstanceOf(SideEffect::class, $parallel->wait()->match(
+            static fn($sideEffect) => $sideEffect,
+            static fn() => null,
+        ));
     }
 
     public function testParallelInvokation()
@@ -102,38 +107,35 @@ class ParallelTest extends TestCase
         $this->assertLessThan(12, $delta);
     }
 
-    public function testThrowWhenSubProcessFailed()
+    public function testReturnErrorWhenSubProcessFailed()
     {
-        $this->expectException(SubProcessFailed::class);
-
-        try {
-            $start = \time();
-            Parallel::of(new SubProcess(Generic::of(
-                $this->createMock(Halt::class),
-            )))
-                ->schedule(static function() {
-                    \sleep(10);
-                })
-                ->schedule(static function() {
-                    \sleep(5);
-                })
-                ->schedule(static function() {
-                    throw new \Exception;
-                })
-                ->schedule(static function() {
-                    \sleep(30);
-                })
-                ->start()
-                ->match(
-                    static fn($running) => $running->wait(),
-                    static fn() => null,
-                );
-        } finally {
-            $this->assertGreaterThanOrEqual(5, \time() - $start);
-            $this->assertLessThanOrEqual(10, \time() - $start);
-            //it finishes executing the first callable because we wait in the
-            //order of the schedules
-        }
+        $start = \time();
+        $error = Parallel::of(new SubProcess(Generic::of(
+            $this->createMock(Halt::class),
+        )))
+            ->schedule(static function() {
+                \sleep(10);
+            })
+            ->schedule(static function() {
+                \sleep(5);
+            })
+            ->schedule(static function() {
+                throw new \Exception;
+            })
+            ->schedule(static function() {
+                \sleep(30);
+            })
+            ->start()
+            ->flatMap(static fn($running) => $running->wait())
+            ->match(
+                static fn() => null,
+                static fn($e) => $e,
+            );
+        $this->assertInstanceOf(Process\Failed::class, $error);
+        $this->assertGreaterThanOrEqual(5, \time() - $start);
+        $this->assertLessThanOrEqual(10, \time() - $start);
+        //it finishes executing the first callable because we wait in the
+        //order of the schedules
     }
 
     public function testKill()
@@ -191,11 +193,10 @@ class ParallelTest extends TestCase
             );
         $this->assertNull($parallel->kill());
 
-        try {
-            $this->assertNull($parallel->wait());
-        } catch (\Throwable $e) {
-            //pass
-        }
+        $this->assertInstanceOf(SideEffect::class, $parallel->wait()->match(
+            static fn($sideEffect) => $sideEffect,
+            static fn() => null,
+        ));
         $this->assertLessThan(2, \time() - $start);
     }
 }

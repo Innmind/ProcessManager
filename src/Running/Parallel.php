@@ -7,7 +7,11 @@ use Innmind\ProcessManager\{
     Running,
     Process,
 };
-use Innmind\Immutable\Sequence;
+use Innmind\Immutable\{
+    Sequence,
+    Either,
+    SideEffect,
+};
 
 final class Parallel implements Running
 {
@@ -30,11 +34,12 @@ final class Parallel implements Running
         return new self($processes);
     }
 
-    public function wait(): void
+    public function wait(): Either
     {
-        $_ = $this->processes->foreach(static function(Process $process): void {
-            $process->wait();
-        });
+        return $this->processes->reduce(
+            Either::right(new SideEffect),
+            $this->doWait(...),
+        );
     }
 
     public function kill(): void
@@ -45,5 +50,15 @@ final class Parallel implements Running
             ->foreach(static function(Process $process): void {
                 $process->kill();
             });
+    }
+
+    /**
+     * @param Either<Process\Failed, SideEffect> $either
+     *
+     * @return Either<Process\Failed, SideEffect>
+     */
+    private function doWait(Either $either, Process $process): Either
+    {
+        return $either->flatMap(static fn() => $process->wait());
     }
 }

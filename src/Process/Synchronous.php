@@ -4,7 +4,10 @@ declare(strict_types = 1);
 namespace Innmind\ProcessManager\Process;
 
 use Innmind\ProcessManager\Process;
-use Innmind\Immutable\Either;
+use Innmind\Immutable\{
+    Either,
+    SideEffect,
+};
 
 final class Synchronous implements Process
 {
@@ -37,8 +40,9 @@ final class Synchronous implements Process
         return false;
     }
 
-    public function wait(): void
+    public function wait(): Either
     {
+        return Either::right(new SideEffect);
     }
 
     public function kill(): void

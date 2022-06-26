@@ -13,7 +13,10 @@ use Innmind\OperatingSystem\{
     CurrentProcess\ForkFailed,
 };
 use Innmind\Signals\Signal;
-use Innmind\Immutable\Either;
+use Innmind\Immutable\{
+    Either,
+    SideEffect,
+};
 
 final class Fork implements Process
 {
@@ -56,16 +59,15 @@ final class Fork implements Process
         return $this->child->running();
     }
 
-    public function wait(): void
+    public function wait(): Either
     {
         $exitCode = $this->child->wait();
 
-        if ($exitCode->toInt() !== 0) {
-            throw new SubProcessFailed(
-                $this->callable,
-                $exitCode->toInt(),
-            );
+        if ($exitCode->successful()) {
+            return Either::right(new SideEffect);
         }
+
+        return Either::left(new Failed);
     }
 
     public function kill(): void

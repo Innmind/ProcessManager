@@ -19,6 +19,7 @@ use Innmind\Immutable\{
     Str,
     Set,
     Either,
+    SideEffect,
 };
 
 final class Buffer implements Runner
@@ -44,15 +45,17 @@ final class Buffer implements Runner
 
     public function __invoke(callable $callable): Either
     {
-        $this->buffer();
-
         [$callable, $beacon] = $this->entangle($callable);
 
-        return ($this->run)($callable)->map(function($process) use ($beacon) {
-            $this->running = ($this->running)($beacon, $process);
+        return $this
+            ->buffer()
+            ->leftMap(static fn() => new Process\InitFailed)
+            ->flatMap(fn() => ($this->run)($callable))
+            ->map(function($process) use ($beacon) {
+                $this->running = ($this->running)($beacon, $process);
 
-            return $process;
-        });
+                return $process;
+            });
     }
 
     /**
@@ -87,10 +90,13 @@ final class Buffer implements Runner
         return [$callable, $parent];
     }
 
-    private function buffer(): void
+    /**
+     * @return Either<Process\Failed, SideEffect>
+     */
+    private function buffer(): Either
     {
         if ($this->running->size() < $this->size) {
-            return;
+            return Either::right(new SideEffect);
         }
 
         $watch = $this->running->reduce(
@@ -102,25 +108,36 @@ final class Buffer implements Runner
         );
 
         do {
+            /** @var Set<Selectable> */
             $toRead = $watch()->match(
                 static fn($ready) => $ready->toRead(),
                 static fn() => Set::of(),
             );
         } while ($toRead->empty());
 
-        $_ = $toRead->foreach(function(Selectable $stream): void {
-            //truly wait the process to finish, as the stream is just a signal
-            $_ = $this->running->get($stream)->match(
-                static fn($process) => $process->wait(),
-                static fn() => null,
-            );
-        });
-        /** @var Map<Selectable, Process> */
-        $this->running = $toRead->reduce(
-            $this->running,
-            static function(Map $carry, Selectable $stream): Map {
-                return $carry->remove($stream);
-            },
+        $finished = $this->running->filter(
+            static fn($beacon) => $toRead->contains($beacon),
         );
+        $this->running = $this->running->filter(
+            static fn($beacon) => !$finished->contains($beacon),
+        );
+
+        // truly wait the process to finish, as the stream is just a signal
+        return $finished
+            ->values()
+            ->reduce(
+                Either::right(new SideEffect),
+                self::wait(...),
+            );
+    }
+
+    /**
+     * @param Either<Process\Failed, SideEffect> $either
+     *
+     * @return Either<Process\Failed, SideEffect>
+     */
+    private static function wait(Either $either, Process $process): Either
+    {
+        return $either->flatMap(static fn() => $process->wait());
     }
 }

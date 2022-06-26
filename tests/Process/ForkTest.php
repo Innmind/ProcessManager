@@ -14,7 +14,10 @@ use Innmind\OperatingSystem\{
     CurrentProcess\ForkFailed,
 };
 use Innmind\TimeWarp\Halt;
-use Innmind\Immutable\Either;
+use Innmind\Immutable\{
+    Either,
+    SideEffect,
+};
 use PHPUnit\Framework\TestCase;
 
 class ForkTest extends TestCase
@@ -39,11 +42,14 @@ class ForkTest extends TestCase
         $this->assertTrue(\is_int($process->pid()));
         $this->assertTrue($process->pid() > \getmypid());
         $this->assertTrue($process->running());
-        $this->assertNull($process->wait());
+        $this->assertInstanceOf(SideEffect::class, $process->wait()->match(
+            static fn($sideEffect) => $sideEffect,
+            static fn() => null,
+        ));
         $this->assertGreaterThanOrEqual(2, \time() - $start);
     }
 
-    public function testThrowWhenCallableFails()
+    public function testReturnErrorWhenCallableFails()
     {
         $process = Fork::start(
             Generic::of(
@@ -59,13 +65,12 @@ class ForkTest extends TestCase
             static fn() => null,
         );
 
-        try {
-            $process->wait();
-            $this->fail('it should throw');
-        } catch (SubProcessFailed $e) {
-            $this->assertSame($fn, $e->callable());
-            $this->assertSame(1, $e->exitCode());
-        }
+        $error = $process->wait()->match(
+            static fn() => null,
+            static fn($e) => $e,
+        );
+
+        $this->assertInstanceOf(Process\Failed::class, $error);
     }
 
     public function testKill()

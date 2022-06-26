@@ -13,6 +13,7 @@ use Innmind\OperatingSystem\Sockets;
 use Innmind\Immutable\{
     Sequence,
     Either,
+    SideEffect,
 };
 
 final class Pool implements Running
@@ -61,16 +62,12 @@ final class Pool implements Running
         );
     }
 
-    public function wait(): void
+    public function wait(): Either
     {
-        $processes = self::tryStart($this->buffer, $this->scheduled)->match(
-            static fn($processes) => $processes,
-            static fn() => throw new \RuntimeException,
-        );
-        $_ = $this
-            ->processes
-            ->append($processes)
-            ->foreach(static fn($process) => $process->wait());
+        return self::tryStart($this->buffer, $this->scheduled)
+            ->leftMap(static fn() => new Process\Failed)
+            ->map(fn($processes) => $this->processes->append($processes))
+            ->flatMap(self::doWait(...));
     }
 
     public function kill(): void
@@ -101,6 +98,22 @@ final class Pool implements Running
                 static fn(Sequence $processes) => $buffer($callable)->map(
                     static fn(Process $process) => ($processes)($process),
                 ),
+            ),
+        );
+    }
+
+    /**
+     * @param Sequence<Process> $processes
+     *
+     * @return Either<Process\Failed, SideEffect>
+     */
+    private static function doWait(Sequence $processes): Either
+    {
+        /** @var Either<Process\Failed, SideEffect> */
+        return $processes->reduce(
+            Either::right(new SideEffect),
+            static fn(Either $either, Process $process): Either => $either->flatMap(
+                static fn(): Either => $process->wait(),
             ),
         );
     }

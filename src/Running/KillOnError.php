@@ -4,6 +4,7 @@ declare(strict_types = 1);
 namespace Innmind\ProcessManager\Running;
 
 use Innmind\ProcessManager\Running;
+use Innmind\Immutable\Either;
 
 final class KillOnError implements Running
 {
@@ -19,15 +20,13 @@ final class KillOnError implements Running
         return new self($running);
     }
 
-    public function wait(): void
+    public function wait(): Either
     {
-        try {
-            $this->running->wait();
-        } catch (\Throwable $e) {
+        return $this->running->wait()->leftMap(function($e) {
             $this->kill();
 
-            throw $e;
-        }
+            return $e;
+        });
     }
 
     public function kill(): void

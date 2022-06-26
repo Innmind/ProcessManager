@@ -6,6 +6,11 @@ namespace Tests\Innmind\ProcessManager\Running;
 use Innmind\ProcessManager\{
     Running\KillOnError,
     Running,
+    Process,
+};
+use Innmind\Immutable\{
+    Either,
+    SideEffect,
 };
 use PHPUnit\Framework\TestCase;
 
@@ -16,10 +21,11 @@ class KillOnErrorTest extends TestCase
         $inner = $this->createMock(Running::class);
         $inner
             ->expects($this->once())
-            ->method('wait');
+            ->method('wait')
+            ->willReturn($expected = Either::right(new SideEffect));
         $running = KillOnError::of($inner);
 
-        $this->assertNull($running->wait());
+        $this->assertEquals($expected, $running->wait());
     }
 
     public function testKill()
@@ -39,17 +45,12 @@ class KillOnErrorTest extends TestCase
         $inner
             ->expects($this->once())
             ->method('wait')
-            ->will($this->throwException($expected = new \Exception));
+            ->willReturn($expected = Either::left(new Process\Failed));
         $inner
             ->expects($this->once())
             ->method('kill');
         $running = KillOnError::of($inner);
 
-        try {
-            $running->wait();
-            $this->fail('it should throw');
-        } catch (\Throwable $e) {
-            $this->assertSame($expected, $e);
-        }
+        $this->assertEquals($expected, $running->wait());
     }
 }
