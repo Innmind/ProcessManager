@@ -3,10 +3,7 @@ declare(strict_types = 1);
 
 namespace Innmind\ProcessManager\Process;
 
-use Innmind\ProcessManager\{
-    Process,
-    Exception\SubProcessFailed,
-};
+use Innmind\ProcessManager\Process;
 use Innmind\OperatingSystem\{
     CurrentProcess,
     CurrentProcess\Child,

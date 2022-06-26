@@ -6,7 +6,6 @@ namespace Tests\Innmind\ProcessManager\Process;
 use Innmind\ProcessManager\{
     Process\Fork,
     Process,
-    Exception\SubProcessFailed,
 };
 use Innmind\OperatingSystem\{
     CurrentProcess\Generic,
