@@ -42,14 +42,15 @@ final class Parallel implements Running
         );
     }
 
-    public function kill(): void
+    public function kill(): Either
     {
-        $_ = $this
+        return $this
             ->processes
             ->filter(static fn(Process $process): bool => $process->running())
-            ->foreach(static function(Process $process): void {
-                $process->kill();
-            });
+            ->reduce(
+                Either::right(new SideEffect),
+                self::doKill(...),
+            );
     }
 
     /**
@@ -60,5 +61,15 @@ final class Parallel implements Running
     private function doWait(Either $either, Process $process): Either
     {
         return $either->flatMap(static fn() => $process->wait());
+    }
+
+    /**
+     * @param Either<Process\Unkillable, SideEffect> $either
+     *
+     * @return Either<Process\Unkillable, SideEffect>
+     */
+    private static function doKill(Either $either, Process $process): Either
+    {
+        return $either->flatMap($process->kill(...));
     }
 }

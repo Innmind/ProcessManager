@@ -33,10 +33,11 @@ class KillOnErrorTest extends TestCase
         $inner = $this->createMock(Running::class);
         $inner
             ->expects($this->once())
-            ->method('kill');
+            ->method('kill')
+            ->willReturn($expected = Either::right(new SideEffect));
         $running = KillOnError::of($inner);
 
-        $this->assertNull($running->kill());
+        $this->assertEquals($expected, $running->kill());
     }
 
     public function testKillOnErrorWhenWaiting()
@@ -48,7 +49,8 @@ class KillOnErrorTest extends TestCase
             ->willReturn($expected = Either::left(new Process\Failed));
         $inner
             ->expects($this->once())
-            ->method('kill');
+            ->method('kill')
+            ->willReturn(Either::right(new SideEffect));
         $running = KillOnError::of($inner);
 
         $this->assertEquals($expected, $running->wait());

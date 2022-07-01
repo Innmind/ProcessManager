@@ -70,12 +70,15 @@ final class Pool implements Running
             ->flatMap(self::doWait(...));
     }
 
-    public function kill(): void
+    public function kill(): Either
     {
-        $_ = $this
+        return $this
             ->processes
             ->filter(static fn($process) => $process->running())
-            ->foreach(static fn($process) => $process->kill());
+            ->reduce(
+                Either::right(new SideEffect),
+                self::doKill(...),
+            );
     }
 
     /**
@@ -116,5 +119,15 @@ final class Pool implements Running
                 static fn(): Either => $process->wait(),
             ),
         );
+    }
+
+    /**
+     * @param Either<Process\Unkillable, SideEffect> $either
+     *
+     * @return Either<Process\Unkillable, SideEffect>
+     */
+    private static function doKill(Either $either, Process $process): Either
+    {
+        return $either->flatMap($process->kill(...));
     }
 }

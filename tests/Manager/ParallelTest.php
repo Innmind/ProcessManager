@@ -161,7 +161,8 @@ class ParallelTest extends TestCase
             ->willReturn(true);
         $process2
             ->expects($this->once())
-            ->method('kill');
+            ->method('kill')
+            ->willReturn($expected = Either::right(new SideEffect));
         $parallel = Parallel::of($runner)
             ->schedule(static function() {})
             ->schedule(static function() {})
@@ -171,7 +172,7 @@ class ParallelTest extends TestCase
                 static fn() => null,
             );
 
-        $this->assertNull($parallel->kill());
+        $this->assertEquals($expected, $parallel->kill());
     }
 
     public function testRealKill()
@@ -191,7 +192,10 @@ class ParallelTest extends TestCase
                 static fn($running) => $running,
                 static fn() => null,
             );
-        $this->assertNull($parallel->kill());
+        $this->assertInstanceOf(SideEffect::class, $parallel->kill()->match(
+            static fn($sideEffect) => $sideEffect,
+            static fn() => null,
+        ));
 
         $this->assertInstanceOf(SideEffect::class, $parallel->wait()->match(
             static fn($sideEffect) => $sideEffect,

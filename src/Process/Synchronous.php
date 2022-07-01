@@ -45,7 +45,8 @@ final class Synchronous implements Process
         return Either::right(new SideEffect);
     }
 
-    public function kill(): void
+    public function kill(): Either
     {
+        return Either::right(new SideEffect);
     }
 }

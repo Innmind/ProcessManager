@@ -67,9 +67,16 @@ final class Fork implements Process
         return Either::left(new Failed);
     }
 
-    public function kill(): void
+    public function kill(): Either
     {
-        $this->child->kill();
+        try {
+            $this->child->kill();
+
+            return Either::right(new SideEffect);
+        } catch (\Throwable $e) {
+            // kill doesn't seem to throw exceptions but better safe than sorry
+            return Either::left(new Unkillable);
+        }
     }
 
     public function pid(): int

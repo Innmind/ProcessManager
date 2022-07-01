@@ -18,5 +18,9 @@ interface Process
      * @return Either<Process\Failed, SideEffect>
      */
     public function wait(): Either;
-    public function kill(): void;
+
+    /**
+     * @return Either<Process\Unkillable, SideEffect>
+     */
+    public function kill(): Either;
 }

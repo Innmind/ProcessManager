@@ -22,15 +22,16 @@ final class KillOnError implements Running
 
     public function wait(): Either
     {
-        return $this->running->wait()->leftMap(function($e) {
-            $this->kill();
-
-            return $e;
-        });
+        return $this->running->wait()->leftMap(
+            fn($e) => $this->kill()->match(
+                static fn() => $e,
+                static fn() => $e,
+            ),
+        );
     }
 
-    public function kill(): void
+    public function kill(): Either
     {
-        $this->running->kill();
+        return $this->running->kill();
     }
 }

@@ -267,7 +267,8 @@ class PoolTest extends TestCase
             ->willReturn(true);
         $process2
             ->expects($this->once())
-            ->method('kill');
+            ->method('kill')
+            ->willReturn($expected = Either::right(new SideEffect));
         $parallel = Pool::of(2, $runner, $sockets)
             ->schedule(static function() {})
             ->schedule(static function() {})
@@ -277,7 +278,7 @@ class PoolTest extends TestCase
                 static fn() => null,
             );
 
-        $this->assertNull($parallel->kill());
+        $this->assertEquals($expected, $parallel->kill());
     }
 
     public function testRealKill()
@@ -297,7 +298,10 @@ class PoolTest extends TestCase
                 static fn($running) => $running,
                 static fn() => null,
             );
-        $this->assertNull($parallel->kill());
+        $this->assertInstanceOf(SideEffect::class, $parallel->kill()->match(
+            static fn($sideEffect) => $sideEffect,
+            static fn() => null,
+        ));
 
         $this->assertInstanceOf(SideEffect::class, $parallel->wait()->match(
             static fn($sideEffect) => $sideEffect,

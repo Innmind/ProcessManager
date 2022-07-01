@@ -29,6 +29,9 @@ class SynchronousTest extends TestCase
             static fn($sideEffect) => $sideEffect,
             static fn() => null,
         ));
-        $this->assertNull($process->kill());
+        $this->assertInstanceOf(SideEffect::class, $process->kill()->match(
+            static fn($sideEffect) => $sideEffect,
+            static fn() => null,
+        ));
     }
 }
