@@ -10,7 +10,10 @@ use Innmind\ProcessManager\{
 };
 use Innmind\OperatingSystem\CurrentProcess;
 use Innmind\Signals\Signal;
-use Innmind\Immutable\Set;
+use Innmind\Immutable\{
+    Set,
+    Either,
+};
 
 final class SubProcess implements Runner
 {
@@ -22,22 +25,24 @@ final class SubProcess implements Runner
     {
         $this->process = $process;
         /** @var Set<Fork> */
-        $this->processes = Set::of(Fork::class);
+        $this->processes = Set::of();
         $this->registerSignalHandlers($process);
     }
 
-    public function __invoke(callable $callable): Process
+    public function __invoke(callable $callable): Either
     {
-        $process = new Fork($this->process, $callable);
-        $this->processes = ($this->processes)($process);
+        /** @var Either<Process\InitFailed, Process> */
+        return Fork::start($this->process, $callable)->map(function($process) {
+            $this->processes = ($this->processes)($process);
 
-        return $process;
+            return $process;
+        });
     }
 
     private function registerSignalHandlers(CurrentProcess $process): void
     {
         $forward = function(Signal $signal): void {
-            $this
+            $_ = $this
                 ->processes
                 ->filter(static fn(Fork $process): bool => $process->running())
                 ->foreach(static function(Fork $process) use ($signal): void {
@@ -45,9 +50,9 @@ final class SubProcess implements Runner
                 });
         };
 
-        $process->signals()->listen(Signal::hangup(), $forward);
-        $process->signals()->listen(Signal::interrupt(), $forward);
-        $process->signals()->listen(Signal::abort(), $forward);
-        $process->signals()->listen(Signal::terminate(), $forward);
+        $process->signals()->listen(Signal::hangup, $forward);
+        $process->signals()->listen(Signal::interrupt, $forward);
+        $process->signals()->listen(Signal::abort, $forward);
+        $process->signals()->listen(Signal::terminate, $forward);
     }
 }

@@ -8,13 +8,9 @@ use Innmind\Immutable\{
     SideEffect,
 };
 
-interface Process
+interface Running
 {
-    public function running(): bool;
-
     /**
-     * Wait until the process ends
-     *
      * @return Either<Process\Failed, SideEffect>
      */
     public function wait(): Either;

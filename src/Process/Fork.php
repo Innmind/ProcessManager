@@ -3,46 +3,52 @@ declare(strict_types = 1);
 
 namespace Innmind\ProcessManager\Process;
 
-use Innmind\ProcessManager\{
-    Process,
-    Exception\CouldNotFork,
-    Exception\SubProcessFailed,
-};
+use Innmind\ProcessManager\Process;
 use Innmind\OperatingSystem\{
     CurrentProcess,
     CurrentProcess\Child,
-    Exception\ForkFailed,
+    CurrentProcess\ForkFailed,
 };
 use Innmind\Signals\Signal;
+use Innmind\Immutable\{
+    Either,
+    SideEffect,
+};
 
 final class Fork implements Process
 {
     private \Closure $callable;
     private Child $child;
 
-    public function __construct(CurrentProcess $process, callable $callable)
+    /**
+     * @param callable(): void $callable
+     */
+    private function __construct(Child $child, callable $callable)
     {
         $this->callable = \Closure::fromCallable($callable);
+        $this->child = $child;
+    }
 
-        try {
-            $side = $process->fork();
-
-            if (!$side->parent()) {
-                try {
-                    $this->registerSignalHandlers($process);
-
-                    $callable();
-
-                    exit(0);
-                } catch (\Throwable $e) {
-                    exit(1);
-                }
-            }
-        } catch (ForkFailed $e) {
-            throw new CouldNotFork($callable);
-        }
-
-        $this->child = $process->children()->get($side->child());
+    /**
+     * @param callable(): void $callable
+     *
+     * @return Either<InitFailed, self>
+     */
+    public static function start(CurrentProcess $process, callable $callable): Either
+    {
+        /**
+         * @psalm-suppress NoValue as self::execute never returns
+         * @var Either<InitFailed, self>
+         */
+        return $process
+            ->fork()
+            ->match(
+                static fn() => self::execute($process, $callable),
+                static fn($side) => match (true) {
+                    $side instanceof ForkFailed => Either::left(new InitFailed),
+                    $side instanceof Child => Either::right(new self($side, $callable)),
+                },
+            );
     }
 
     public function running(): bool
@@ -50,21 +56,27 @@ final class Fork implements Process
         return $this->child->running();
     }
 
-    public function wait(): void
+    public function wait(): Either
     {
         $exitCode = $this->child->wait();
 
-        if ($exitCode->toInt() !== 0) {
-            throw new SubProcessFailed(
-                $this->callable,
-                $exitCode->toInt(),
-            );
+        if ($exitCode->successful()) {
+            return Either::right(new SideEffect);
         }
+
+        return Either::left(new Failed);
     }
 
-    public function kill(): void
+    public function kill(): Either
     {
-        $this->child->kill();
+        try {
+            $this->child->kill();
+
+            return Either::right(new SideEffect);
+        } catch (\Throwable $e) {
+            // kill doesn't seem to throw exceptions but better safe than sorry
+            return Either::left(new Unkillable);
+        }
     }
 
     public function pid(): int
@@ -72,15 +84,33 @@ final class Fork implements Process
         return $this->child->id()->toInt();
     }
 
-    private function registerSignalHandlers(CurrentProcess $process): void
+    private static function registerSignalHandlers(CurrentProcess $process): void
     {
         $exit = static function(): void {
             exit(1);
         };
 
-        $process->signals()->listen(Signal::hangup(), $exit);
-        $process->signals()->listen(Signal::interrupt(), $exit);
-        $process->signals()->listen(Signal::abort(), $exit);
-        $process->signals()->listen(Signal::terminate(), $exit);
+        $process->signals()->listen(Signal::hangup, $exit);
+        $process->signals()->listen(Signal::interrupt, $exit);
+        $process->signals()->listen(Signal::abort, $exit);
+        $process->signals()->listen(Signal::terminate, $exit);
+    }
+
+    /**
+     * @param callable(): void $callable
+     */
+    private static function execute(
+        CurrentProcess $process,
+        callable $callable,
+    ): never {
+        try {
+            self::registerSignalHandlers($process);
+
+            $callable();
+
+            exit(0);
+        } catch (\Throwable) {
+            exit(1);
+        }
     }
 }

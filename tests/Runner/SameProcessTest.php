@@ -23,7 +23,10 @@ class SameProcessTest extends TestCase
 
         $process = $run($fn = static function() {
             \sleep(1);
-        });
+        })->match(
+            static fn($process) => $process,
+            static fn() => null,
+        );
 
         $this->assertInstanceOf(Synchronous::class, $process);
         $this->assertNotSame($process, $run($fn));

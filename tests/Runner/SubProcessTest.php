@@ -9,7 +9,6 @@ use Innmind\ProcessManager\{
     Process\Fork,
 };
 use Innmind\OperatingSystem\CurrentProcess;
-use Innmind\TimeContinuum\Clock;
 use Innmind\TimeWarp\Halt;
 use PHPUnit\Framework\TestCase;
 
@@ -19,20 +18,22 @@ class SubProcessTest extends TestCase
     {
         $this->assertInstanceOf(
             Runner::class,
-            new SubProcess($this->createMock(CurrentProcess::class))
+            new SubProcess($this->createMock(CurrentProcess::class)),
         );
     }
 
     public function testInvokation()
     {
-        $run = new SubProcess(new CurrentProcess\Generic(
-            $this->createMock(Clock::class),
-            $this->createMock(Halt::class)
+        $run = new SubProcess(CurrentProcess\Generic::of(
+            $this->createMock(Halt::class),
         ));
 
         $process = $run($fn = static function() {
             \sleep(1);
-        });
+        })->match(
+            static fn($process) => $process,
+            static fn() => null,
+        );
 
         $this->assertInstanceOf(Fork::class, $process);
         $this->assertNotSame($process, $run($fn));

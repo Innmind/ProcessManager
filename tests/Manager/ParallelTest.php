@@ -10,11 +10,14 @@ use Innmind\ProcessManager\{
     Runner\SameProcess,
     Runner\SubProcess,
     Process,
-    Exception\SubProcessFailed,
+    Running,
 };
 use Innmind\OperatingSystem\CurrentProcess\Generic;
-use Innmind\TimeContinuum\Clock;
 use Innmind\TimeWarp\Halt;
+use Innmind\Immutable\{
+    Either,
+    SideEffect,
+};
 use PHPUnit\Framework\TestCase;
 
 class ParallelTest extends TestCase
@@ -23,15 +26,14 @@ class ParallelTest extends TestCase
     {
         $this->assertInstanceOf(
             Manager::class,
-            new Parallel($this->createMock(Runner::class))
+            Parallel::of($this->createMock(Runner::class)),
         );
     }
 
     public function testSchedule()
     {
-        $parallel = new Parallel(new SubProcess(new Generic(
-            $this->createMock(Clock::class),
-            $this->createMock(Halt::class)
+        $parallel = Parallel::of(new SubProcess(Generic::of(
+            $this->createMock(Halt::class),
         )));
 
         $parallel2 = $parallel->schedule(static function() {});
@@ -42,22 +44,24 @@ class ParallelTest extends TestCase
 
     public function testInvokationWithoutScheduledCallables()
     {
-        $parallel = new Parallel(
-            $runner = $this->createMock(Runner::class)
+        $parallel = Parallel::of(
+            $runner = $this->createMock(Runner::class),
         );
         $runner
             ->expects($this->never())
             ->method('__invoke');
 
-        $parallel2 = $parallel();
+        $running = $parallel->start()->match(
+            static fn($running) => $running,
+            static fn() => null,
+        );
 
-        $this->assertInstanceOf(Parallel::class, $parallel2);
-        $this->assertNotSame($parallel2, $parallel);
+        $this->assertInstanceOf(Running::class, $running);
     }
 
     public function testInvokation()
     {
-        $parallel = new Parallel(new SameProcess);
+        $parallel = Parallel::of(new SameProcess);
         $start = \time();
         $parallel = $parallel->schedule(static function() {
             \sleep(1);
@@ -68,76 +72,70 @@ class ParallelTest extends TestCase
 
         $this->assertLessThan(2, \time() - $start);
 
-        $parallel = $parallel();
+        $parallel = $parallel->start()->match(
+            static fn($running) => $running,
+            static fn() => null,
+        );
 
         $this->assertGreaterThanOrEqual(2, \time() - $start);
-        $this->assertNull($parallel->wait());
+        $this->assertInstanceOf(SideEffect::class, $parallel->wait()->match(
+            static fn($sideEffect) => $sideEffect,
+            static fn() => null,
+        ));
     }
 
     public function testParallelInvokation()
     {
         $start = \time();
-        $parallel = (new Parallel(new SubProcess(new Generic(
-            $this->createMock(Clock::class),
-            $this->createMock(Halt::class)
-        ))))
+        $parallel = Parallel::of(new SubProcess(Generic::of(
+            $this->createMock(Halt::class),
+        )))
             ->schedule(static function() {
                 \sleep(10);
             })
             ->schedule(static function() {
                 \sleep(5);
-            })()
-            ->wait();
+            })
+            ->start()
+            ->match(
+                static fn($running) => $running->wait(),
+                static fn() => null,
+            );
         $delta = \time() - $start;
 
         $this->assertGreaterThanOrEqual(10, $delta);
         $this->assertLessThan(12, $delta);
     }
 
-    public function testDoesntWaitWhenNotInvoked()
+    public function testReturnErrorWhenSubProcessFailed()
     {
-        $parallel = new Parallel(new SubProcess(new Generic(
-            $this->createMock(Clock::class),
-            $this->createMock(Halt::class)
-        )));
-        $parallel = $parallel->schedule(static function() {
-            \sleep(1);
-        });
-
         $start = \time();
-        $this->assertNull($parallel->wait());
-        $this->assertLessThan(1, \time() - $start);
-    }
-
-    public function testThrowWhenSubProcessFailed()
-    {
-        $this->expectException(SubProcessFailed::class);
-
-        try {
-            $start = \time();
-            (new Parallel(new SubProcess(new Generic(
-                $this->createMock(Clock::class),
-                $this->createMock(Halt::class)
-            ))))
-                ->schedule(static function() {
-                    \sleep(10);
-                })
-                ->schedule(static function() {
-                    \sleep(5);
-                })
-                ->schedule(static function() {
-                    throw new \Exception;
-                })
-                ->schedule(static function() {
-                    \sleep(30);
-                })()
-                ->wait();
-        } finally {
-            $this->assertGreaterThanOrEqual(5, \time() - $start);
-            $this->assertLessThanOrEqual(10, \time() - $start);
-            //it finishes executing the first callable because we wait in the
-            //order of the schedules
-        }
+        $error = Parallel::of(new SubProcess(Generic::of(
+            $this->createMock(Halt::class),
+        )))
+            ->schedule(static function() {
+                \sleep(10);
+            })
+            ->schedule(static function() {
+                \sleep(5);
+            })
+            ->schedule(static function() {
+                throw new \Exception;
+            })
+            ->schedule(static function() {
+                \sleep(30);
+            })
+            ->start()
+            ->flatMap(static fn($running) => $running->wait())
+            ->match(
+                static fn() => null,
+                static fn($e) => $e,
+            );
+        $this->assertInstanceOf(Process\Failed::class, $error);
+        $this->assertGreaterThanOrEqual(5, \time() - $start);
+        $this->assertLessThanOrEqual(10, \time() - $start);
+        //it finishes executing the first callable because we wait in the
+        //order of the schedules
     }
 
     public function testKill()
@@ -147,8 +145,8 @@ class ParallelTest extends TestCase
             ->expects($this->exactly(2))
             ->method('__invoke')
             ->will($this->onConsecutiveCalls(
-                $process1 = $this->createMock(Process::class),
-                $process2 = $this->createMock(Process::class),
+                Either::right($process1 = $this->createMock(Process::class)),
+                Either::right($process2 = $this->createMock(Process::class)),
             ));
         $process1
             ->expects($this->once())
@@ -163,34 +161,46 @@ class ParallelTest extends TestCase
             ->willReturn(true);
         $process2
             ->expects($this->once())
-            ->method('kill');
-        $parallel = (new Parallel($runner))
+            ->method('kill')
+            ->willReturn($expected = Either::right(new SideEffect));
+        $parallel = Parallel::of($runner)
             ->schedule(static function() {})
-            ->schedule(static function() {})();
+            ->schedule(static function() {})
+            ->start()
+            ->match(
+                static fn($running) => $running,
+                static fn() => null,
+            );
 
-        $this->assertNull($parallel->kill());
+        $this->assertEquals($expected, $parallel->kill());
     }
 
     public function testRealKill()
     {
         $start = \time();
-        $parallel = (new Parallel(new SubProcess(new Generic(
-            $this->createMock(Clock::class),
-            $this->createMock(Halt::class)
-        ))))
+        $parallel = Parallel::of(new SubProcess(Generic::of(
+            $this->createMock(Halt::class),
+        )))
             ->schedule(static function() {
                 \sleep(10);
             })
             ->schedule(static function() {
                 \sleep(5);
-            })();
-        $this->assertNull($parallel->kill());
+            })
+            ->start()
+            ->match(
+                static fn($running) => $running,
+                static fn() => null,
+            );
+        $this->assertInstanceOf(SideEffect::class, $parallel->kill()->match(
+            static fn($sideEffect) => $sideEffect,
+            static fn() => null,
+        ));
 
-        try {
-            $this->assertNull($parallel->wait());
-        } catch (\Throwable $e) {
-            //pass
-        }
+        $this->assertInstanceOf(SideEffect::class, $parallel->wait()->match(
+            static fn($sideEffect) => $sideEffect,
+            static fn() => null,
+        ));
         $this->assertLessThan(2, \time() - $start);
     }
 }

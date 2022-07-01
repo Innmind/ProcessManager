@@ -3,46 +3,35 @@ declare(strict_types = 1);
 
 namespace Innmind\ProcessManager\Manager;
 
-use Innmind\ProcessManager\Manager;
+use Innmind\ProcessManager\{
+    Manager,
+    Running,
+    Process,
+};
+use Innmind\Immutable\Either;
 
 final class KillOnError implements Manager
 {
     private Manager $manager;
 
-    public function __construct(Manager $manager)
+    private function __construct(Manager $manager)
     {
         $this->manager = $manager;
     }
 
-    public function __invoke(): Manager
+    public static function of(Manager $manager): self
     {
-        try {
-            return new self(($this->manager)());
-        } catch (\Throwable $e) {
-            $this->kill();
+        return new self($manager);
+    }
 
-            throw $e;
-        }
+    public function start(): Either
+    {
+        /** @var Either<Process\InitFailed, Running> */
+        return $this->manager->start()->map(Running\KillOnError::of(...));
     }
 
     public function schedule(callable $callable): Manager
     {
         return new self($this->manager->schedule($callable));
-    }
-
-    public function wait(): void
-    {
-        try {
-            $this->manager->wait();
-        } catch (\Throwable $e) {
-            $this->kill();
-
-            throw $e;
-        }
-    }
-
-    public function kill(): void
-    {
-        $this->manager->kill();
     }
 }
