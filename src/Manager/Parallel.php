@@ -6,61 +6,69 @@ namespace Innmind\ProcessManager\Manager;
 use Innmind\ProcessManager\{
     Manager,
     Runner,
+    Running,
     Process,
 };
-use Innmind\Immutable\Sequence;
+use Innmind\Immutable\{
+    Sequence,
+    Either,
+};
 
 final class Parallel implements Manager
 {
     private Runner $run;
-    /** @var Sequence<callable> */
+    /** @var Sequence<callable(): void> */
     private Sequence $scheduled;
-    /** @var Sequence<Process> */
-    private Sequence $processes;
 
-    public function __construct(Runner $run)
+    /**
+     * @param Sequence<callable(): void> $scheduled
+     */
+    private function __construct(Runner $run, Sequence $scheduled)
     {
         $this->run = $run;
-        /** @var Sequence<callable> */
-        $this->scheduled = Sequence::of('callable');
-        /** @var Sequence<Process> */
-        $this->processes = Sequence::of(Process::class);
+        $this->scheduled = $scheduled;
     }
 
-    public function __invoke(): Manager
+    public static function of(Runner $runner): self
     {
-        $self = clone $this;
-        $self->processes = $this->scheduled->mapTo(
-            Process::class,
-            fn(callable $callable): Process => ($this->run)($callable),
-        );
+        /** @var Sequence<callable(): void> */
+        $scheduled = Sequence::of();
 
-        return $self;
+        return new self($runner, $scheduled);
+    }
+
+    public function start(): Either
+    {
+        /** @var Either<Process\InitFailed, Sequence<Process>> */
+        $started = Either::right(Sequence::of());
+
+        /** @var Either<Process\InitFailed, Running> */
+        return $this
+            ->scheduled
+            ->reduce(
+                $started,
+                $this->startProcess(...),
+            )
+            ->map(Running\Parallel::start(...));
     }
 
     public function schedule(callable $callable): Manager
     {
-        $self = clone $this;
-        $self->scheduled = ($self->scheduled)($callable);
-        $self->processes = $self->processes->clear();
-
-        return $self;
+        return new self($this->run, ($this->scheduled)($callable));
     }
 
-    public function wait(): void
+    /**
+     * @param Either<Process\InitFailed, Sequence<Process>> $started
+     * @param callable(): void $callable
+     *
+     * @return Either<Process\InitFailed, Sequence<Process>>
+     */
+    private function startProcess(Either $started, callable $callable): Either
     {
-        $this->processes->foreach(static function(Process $process): void {
-            $process->wait();
-        });
-    }
-
-    public function kill(): void
-    {
-        $this
-            ->processes
-            ->filter(static fn(Process $process): bool => $process->running())
-            ->foreach(static function(Process $process): void {
-                $process->kill();
-            });
+        return $started->flatMap(
+            fn($processes) => ($this->run)($callable)->map(
+                static fn($process) => ($processes)($process),
+            ),
+        );
     }
 }

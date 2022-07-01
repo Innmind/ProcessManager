@@ -4,12 +4,35 @@ declare(strict_types = 1);
 namespace Innmind\ProcessManager\Process;
 
 use Innmind\ProcessManager\Process;
+use Innmind\Immutable\{
+    Either,
+    SideEffect,
+};
 
 final class Synchronous implements Process
 {
-    public function __construct(callable $callable)
+    /**
+     * @param callable(): void $callable
+     */
+    private function __construct(callable $callable)
     {
         $callable();
+    }
+
+    /**
+     * @param callable(): void $callable
+     *
+     * @return Either<InitFailed, Process>
+     */
+    public static function run(callable $callable): Either
+    {
+        try {
+            /** @var Either<InitFailed, Process> */
+            return Either::right(new self($callable));
+        } catch (\Throwable $e) {
+            /** @var Either<InitFailed, Process> */
+            return Either::left(new InitFailed);
+        }
     }
 
     public function running(): bool
@@ -17,11 +40,13 @@ final class Synchronous implements Process
         return false;
     }
 
-    public function wait(): void
+    public function wait(): Either
     {
+        return Either::right(new SideEffect);
     }
 
-    public function kill(): void
+    public function kill(): Either
     {
+        return Either::right(new SideEffect);
     }
 }

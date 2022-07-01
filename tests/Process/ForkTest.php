@@ -6,16 +6,17 @@ namespace Tests\Innmind\ProcessManager\Process;
 use Innmind\ProcessManager\{
     Process\Fork,
     Process,
-    Exception\SubProcessFailed,
-    Exception\CouldNotFork,
 };
 use Innmind\OperatingSystem\{
     CurrentProcess\Generic,
     CurrentProcess,
-    Exception\ForkFailed,
+    CurrentProcess\ForkFailed,
 };
-use Innmind\TimeContinuum\Clock;
 use Innmind\TimeWarp\Halt;
+use Innmind\Immutable\{
+    Either,
+    SideEffect,
+};
 use PHPUnit\Framework\TestCase;
 
 class ForkTest extends TestCase
@@ -23,14 +24,16 @@ class ForkTest extends TestCase
     public function testInterface()
     {
         $start = \time();
-        $process = new Fork(
-            new Generic(
-                $this->createMock(Clock::class),
-                $this->createMock(Halt::class)
+        $process = Fork::start(
+            Generic::of(
+                $this->createMock(Halt::class),
             ),
             static function() {
                 \sleep(2);
-            }
+            },
+        )->match(
+            static fn($process) => $process,
+            static fn() => null,
         );
 
         $this->assertLessThan(1, \time() - $start);
@@ -38,62 +41,70 @@ class ForkTest extends TestCase
         $this->assertTrue(\is_int($process->pid()));
         $this->assertTrue($process->pid() > \getmypid());
         $this->assertTrue($process->running());
-        $this->assertNull($process->wait());
+        $this->assertInstanceOf(SideEffect::class, $process->wait()->match(
+            static fn($sideEffect) => $sideEffect,
+            static fn() => null,
+        ));
         $this->assertGreaterThanOrEqual(2, \time() - $start);
     }
 
-    public function testThrowWhenCallableFails()
+    public function testReturnErrorWhenCallableFails()
     {
-        $process = new Fork(
-            new Generic(
-                $this->createMock(Clock::class),
-                $this->createMock(Halt::class)
+        $process = Fork::start(
+            Generic::of(
+                $this->createMock(Halt::class),
             ),
             $fn = static function() {
                 \sleep(2);
 
                 throw new \Exception;
-            }
+            },
+        )->match(
+            static fn($process) => $process,
+            static fn() => null,
         );
 
-        try {
-            $process->wait();
-            $this->fail('it should throw');
-        } catch (SubProcessFailed $e) {
-            $this->assertSame($fn, $e->callable());
-            $this->assertSame(1, $e->exitCode());
-        }
+        $error = $process->wait()->match(
+            static fn() => null,
+            static fn($e) => $e,
+        );
+
+        $this->assertInstanceOf(Process\Failed::class, $error);
     }
 
     public function testKill()
     {
-        $process = new Fork(
-            new Generic(
-                $this->createMock(Clock::class),
-                $this->createMock(Halt::class)
+        $process = Fork::start(
+            Generic::of(
+                $this->createMock(Halt::class),
             ),
             static function() {
                 \sleep(10);
-            }
+            },
+        )->match(
+            static fn($process) => $process,
+            static fn() => null,
         );
 
-        $this->assertNull($process->kill());
+        $this->assertInstanceOf(SideEffect::class, $process->kill()->match(
+            static fn($sideEffect) => $sideEffect,
+            static fn() => null,
+        ));
     }
 
-    public function testThrowWhenForkFailed()
+    public function testReturnErrorWhenForkFailed()
     {
         $process = $this->createMock(CurrentProcess::class);
         $process
             ->expects($this->once())
             ->method('fork')
-            ->will($this->throwException(new ForkFailed));
+            ->willReturn(Either::left(new ForkFailed));
 
-        try {
-            new Fork($process, $fn = static function() {});
+        $error = Fork::start($process, $fn = static function() {})->match(
+            static fn() => null,
+            static fn($e) => $e,
+        );
 
-            $this->fail('it should throw');
-        } catch (CouldNotFork $e) {
-            $this->assertSame($fn, $e->callable());
-        }
+        $this->assertInstanceOf(Process\InitFailed::class, $error);
     }
 }

@@ -7,6 +7,7 @@ use Innmind\ProcessManager\{
     Process\Synchronous,
     Process
 };
+use Innmind\Immutable\SideEffect;
 use PHPUnit\Framework\TestCase;
 
 class SynchronousTest extends TestCase
@@ -14,14 +15,23 @@ class SynchronousTest extends TestCase
     public function testInterface()
     {
         $start = \time();
-        $process = new Synchronous(static function() {
+        $process = Synchronous::run(static function() {
             \sleep(1);
-        });
+        })->match(
+            static fn($process) => $process,
+            static fn() => null,
+        );
 
         $this->assertGreaterThanOrEqual(1, \time() - $start);
         $this->assertInstanceOf(Process::class, $process);
         $this->assertFalse($process->running());
-        $this->assertNull($process->wait());
-        $this->assertNull($process->kill());
+        $this->assertInstanceOf(SideEffect::class, $process->wait()->match(
+            static fn($sideEffect) => $sideEffect,
+            static fn() => null,
+        ));
+        $this->assertInstanceOf(SideEffect::class, $process->kill()->match(
+            static fn($sideEffect) => $sideEffect,
+            static fn() => null,
+        ));
     }
 }
