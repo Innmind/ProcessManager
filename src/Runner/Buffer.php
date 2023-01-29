@@ -10,7 +10,7 @@ use Innmind\ProcessManager\{
 use Innmind\OperatingSystem\Sockets;
 use Innmind\Stream\{
     Stream\Bidirectional,
-    Selectable,
+    Readable,
     Watch,
 };
 use Innmind\TimeContinuum\Earth\ElapsedPeriod;
@@ -28,7 +28,7 @@ final class Buffer implements Runner
     private int $size;
     private Runner $run;
     private Sockets $sockets;
-    /** @var Map<Selectable, Process> */
+    /** @var Map<Bidirectional, Process> */
     private Map $running;
 
     /**
@@ -39,7 +39,7 @@ final class Buffer implements Runner
         $this->size = $size;
         $this->run = $runner;
         $this->sockets = $sockets;
-        /** @var Map<Selectable, Process> */
+        /** @var Map<Bidirectional, Process> */
         $this->running = Map::of();
     }
 
@@ -101,14 +101,13 @@ final class Buffer implements Runner
 
         $watch = $this->running->reduce(
             $this->sockets->watch(new ElapsedPeriod(1000)), //1 second timeout
-            static function(Watch $watch, Selectable $stream): Watch {
-                /** @psalm-suppress InvalidArgument */
+            static function(Watch $watch, Bidirectional $stream): Watch {
                 return $watch->forRead($stream);
             },
         );
 
         do {
-            /** @var Set<Selectable> */
+            /** @var Set<Readable> */
             $toRead = $watch()->match(
                 static fn($ready) => $ready->toRead(),
                 static fn() => Set::of(),
