@@ -15,6 +15,10 @@ use Innmind\Immutable\{
     SideEffect,
 };
 
+/**
+ * @psalm-suppress DeprecatedClass
+ * @psalm-suppress DeprecatedMethod
+ */
 final class Fork implements Process
 {
     private \Closure $callable;
